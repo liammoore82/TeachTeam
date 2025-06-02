@@ -1,0 +1,290 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box, Heading, Text, Badge, VStack, StatGroup, Stat, StatLabel,
+  StatNumber, StatHelpText, SimpleGrid, Card, CardBody, List,
+  ListItem, ListIcon, Center,
+} from '@chakra-ui/react';
+import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons';
+import { TutorApplication, SelectedCandidate } from '../../types/tutor';
+
+type StatisticsTabProps = {
+  allApplications: TutorApplication[];
+  selectedCandidates: SelectedCandidate[];
+  allLecturerSelections: { [key: string]: SelectedCandidate[] };
+  statisticsLoaded: boolean;
+  courseMap: { [key: string]: string };
+};
+
+
+type SelectionCount = {
+  count: number;
+  application: TutorApplication | null;
+};
+
+type StatisticsState = {
+  mostChosen: (TutorApplication | null)[];
+  mostChosenCount: number;
+  leastChosen: (TutorApplication | null)[];
+  leastChosenCount: number;
+  notSelected: TutorApplication[];
+  totalSelections: number;
+  selectionCounts: { [key: string]: SelectionCount };
+};
+
+const StatisticsTab = ({
+  allApplications,
+  selectedCandidates,
+  allLecturerSelections,
+  statisticsLoaded,
+  courseMap,
+}: StatisticsTabProps) => {
+  // useState to store calculated statistics
+  const [statistics, setStatistics] = useState<StatisticsState>({
+    mostChosen: [],
+    mostChosenCount: 0,
+    leastChosen: [],
+    leastChosenCount: 0,
+    notSelected: [],
+    totalSelections: 0,
+    selectionCounts: {},
+  });
+
+  // useEffect to calculate statistics when dependencies change
+  useEffect(() => {
+    // Skip calculations if data isn't loaded yet
+    if (!statisticsLoaded) {
+      return;
+    }
+
+    // calculates selection counts for each application
+    const selectionCounts: { [key: string]: SelectionCount } = {};
+
+    // count selections for each application across all lecturers
+    Object.values(allLecturerSelections).forEach((selections) => {
+      selections.forEach((candidate) => {
+        if (!selectionCounts[candidate.applicationId]) {
+          selectionCounts[candidate.applicationId] = {
+            count: 0,
+            application: allApplications.find((app) => app.id === candidate.applicationId) || null,
+          };
+        }
+        selectionCounts[candidate.applicationId].count += 1;
+      });
+    });
+
+    // sort applications by selection count
+    const selectedApplications = Object.entries(selectionCounts)
+      .filter(([_, data]) => data.application !== null)
+      .sort((a, b) => b[1].count - a[1].count);
+
+    // find the most chosen applications
+    let mostChosenCount = 0;
+    let mostChosen: (TutorApplication | null)[] = [];
+    
+    if (selectedApplications.length > 0) {
+      mostChosenCount = selectedApplications[0][1].count;
+      mostChosen = selectedApplications
+        .filter(([_, data]) => data.count === mostChosenCount)
+        .map(([_, data]) => data.application);
+    }
+
+    // find the least chosen applications
+    let leastChosenCount = 0;
+    let leastChosen: (TutorApplication | null)[] = [];
+    
+    if (selectedApplications.length > 0) {
+      leastChosenCount = selectedApplications[selectedApplications.length - 1][1].count;
+      leastChosen = selectedApplications
+        .filter(([_, data]) => data.count === leastChosenCount)
+        .map(([_, data]) => data.application);
+    }
+
+    // find applications not selected by any lecturer
+    const selectedIds = new Set<string>(Object.keys(selectionCounts));
+    const notSelected = allApplications.filter((app) => !selectedIds.has(app.id));
+
+    // calculate total unique selections across all lecturers
+    const uniqueIds = new Set<string>();
+    Object.values(allLecturerSelections).forEach((selections) => {
+      selections.forEach((s) => uniqueIds.add(s.applicationId));
+    });
+    const totalSelections = uniqueIds.size;
+
+    // update state with calculated statistics
+    setStatistics({
+      mostChosen,
+      mostChosenCount,
+      leastChosen,
+      leastChosenCount,
+      notSelected,
+      totalSelections,
+      selectionCounts,
+    });
+  }, [allApplications, allLecturerSelections, statisticsLoaded]); 
+
+  // If statistics aren't loaded yet, show loading message
+  if (!statisticsLoaded) {
+    return (
+      <Box
+        bg="gray.900"
+        p={6}
+        rounded="md"
+        shadow="lg"
+        color="white"
+        borderColor="set.700"
+        borderWidth="1px"
+        mb={10}
+      >
+        <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
+        <Center p={10}><Text>Loading statistics...</Text></Center>
+      </Box>
+    );
+  }
+
+  
+  const { 
+    mostChosen, 
+    mostChosenCount, 
+    leastChosen, 
+    leastChosenCount, 
+    notSelected, 
+    totalSelections 
+  } = statistics;
+
+  return (
+    <Box
+      bg="gray.900"
+      p={6}
+      rounded="md"
+      shadow="lg"
+      color="white"
+      borderColor="set.700"
+      borderWidth="1px"
+      mb={10}
+    >
+      <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
+
+      <VStack spacing={8} align="stretch">
+        {/* Summary Stats */}
+        <StatGroup bg="gray.800" p={5} borderRadius="md" borderWidth="1px" borderColor="set.700">
+          <Stat>
+            <StatLabel>Total Applications</StatLabel>
+            <StatNumber>{allApplications.length}</StatNumber>
+            <StatHelpText>Across all courses</StatHelpText>
+          </Stat>
+
+          <Stat>
+            <StatLabel>Selected by You</StatLabel>
+            <StatNumber>{selectedCandidates.length}</StatNumber>
+            <StatHelpText>Candidates you've chosen</StatHelpText>
+          </Stat>
+
+          <Stat>
+            <StatLabel>Total Selections</StatLabel>
+            <StatNumber>{totalSelections}</StatNumber>
+            <StatHelpText>By all lecturers</StatHelpText>
+          </Stat>
+        </StatGroup>
+
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {/* Most Chosen */}
+          <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
+            <CardBody>
+              <Heading size="md" mb={3} color="green.400">
+                Most Selected Applicants
+                {mostChosenCount > 0 && <Badge ml={2} colorScheme="green">{mostChosenCount} selections</Badge>}
+              </Heading>
+
+              {mostChosen.length === 0 ? (
+                <Text color="gray.400">No selections have been made yet.</Text>
+              ) : (
+                <List spacing={2}>
+                  {mostChosen.map((app) => app && (
+                    <ListItem key={app.id} display="flex" alignItems="center">
+                      <ListIcon as={CheckCircleIcon} color="green.500" />
+                      <Box>
+                        <Text fontWeight="bold">{app.name}</Text>
+                        <Text fontSize="sm" color="gray.400">{app.email}</Text>
+                        <Text fontSize="sm">
+                          <Badge colorScheme="purple" mr={2}>{app.selectedCourse}</Badge>
+                          <Badge colorScheme={app.availability === 'full-time' ? 'green' : 'blue'}>
+                            {app.availability === 'full-time' ? 'Full Time' : 'Part Time'}
+                          </Badge>
+                        </Text>
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Least Chosen */}
+          <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
+            <CardBody>
+              <Heading size="md" mb={3} color="yellow.400">
+                Least Selected Applicants
+                {leastChosenCount > 0 && <Badge ml={2} colorScheme="yellow">{leastChosenCount} selection(s)</Badge>}
+              </Heading>
+
+              {leastChosen.length === 0 ? (
+                <Text color="gray.400">No selections have been made yet.</Text>
+              ) : (
+                <List spacing={2}>
+                  {leastChosen.map((app) => app && (
+                    <ListItem key={app.id} display="flex" alignItems="center">
+                      <ListIcon as={WarningIcon} color="yellow.500" />
+                      <Box>
+                        <Text fontWeight="bold">{app.name}</Text>
+                        <Text fontSize="sm" color="gray.400">{app.email}</Text>
+                        <Text fontSize="sm">
+                          <Badge colorScheme="purple" mr={2}>{app.selectedCourse}</Badge>
+                          <Badge colorScheme={app.availability === 'full-time' ? 'green' : 'blue'}>
+                            {app.availability === 'full-time' ? 'Full Time' : 'Part Time'}
+                          </Badge>
+                        </Text>
+                      </Box>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {/* Not Selected */}
+        <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
+          <CardBody>
+            <Heading size="md" mb={3} color="red.400">
+              Applicants Not Selected by Any Lecturer
+            </Heading>
+
+            {notSelected.length === 0 ? (
+              <Text color="gray.400">All applicants have been selected by at least one lecturer.</Text>
+            ) : (
+              <List spacing={2}>
+                {notSelected.map((app) => (
+                  <ListItem key={app.id} display="flex" alignItems="center">
+                    <ListIcon as={WarningIcon} color="red.500" />
+                    <Box>
+                      <Text fontWeight="bold">{app.name}</Text>
+                      <Text fontSize="sm" color="gray.400">{app.email}</Text>
+                      <Text fontSize="sm">
+                        <Badge colorScheme="purple" mr={2}>{app.selectedCourse}</Badge>
+                        <Badge colorScheme={app.availability === 'full-time' ? 'green' : 'blue'}>
+                          {app.availability === 'full-time' ? 'Full Time' : 'Part Time'}
+                        </Badge>
+                      </Text>
+                    </Box>
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </CardBody>
+        </Card>
+      </VStack>
+    </Box>
+  );
+};
+
+export default StatisticsTab;

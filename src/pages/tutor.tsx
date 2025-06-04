@@ -62,6 +62,7 @@ const TutorDashboard = () => {
 
   // Authentication and data loading effect
   useEffect(() => {
+
     if (!signedIn) {
       router.push('/unauthorised');
       return;
@@ -70,7 +71,6 @@ const TutorDashboard = () => {
       router.push('/unauthorised');
       return;
     }
-
     loadSavedData();
   }, [signedIn, userRole, router]);
 

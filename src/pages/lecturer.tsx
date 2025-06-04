@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
   Container, Heading, Center, Box, Tabs, TabList, TabPanels, Tab, TabPanel,
-  useToast
+  useToast, Flex
 } from '@chakra-ui/react';
 import { useAuth } from '../context/AccountContext';
 import Header from '../components/Header';
@@ -60,7 +60,6 @@ const LecturerPage = () => {
   
   
   useEffect(() => {
-    // Redirect to unauthorised page if not signed in or not a lecturer
     if (!signedIn) {
       router.push('/unauthorised');
       return;
@@ -70,7 +69,6 @@ const LecturerPage = () => {
       router.push('/unauthorised');
       return;
     }
-    
     // Load applications data if authentication passes
     loadTutorApplications();
   }, [signedIn, userRole, router]); 
@@ -475,16 +473,16 @@ const LecturerPage = () => {
 
   
   return (
-    <>
+    <Flex direction="column" minH="100vh" bg="gray.900">
       <Header />
       
-      <Container maxW="container.xl" py={10}>
+      <Container maxW="container.xl" py={10} flex="1">
         <Center mb={10}>
           <Heading as="h1" size="xl" fontFamily="heading" color="white">
             Lecturer Dashboard
           </Heading>
         </Center>
-
+  
         {/* Tabs for organizing different views */}
         <Tabs variant="enclosed" colorScheme="green" bg="gray.900" rounded="md" p={2}>
           <TabList>
@@ -515,7 +513,7 @@ const LecturerPage = () => {
                 courseMap={courseMap}
               />
             </TabPanel>
-            
+
             {/* Selected Candidates Tab*/}
             <TabPanel>
               <SelectedCandidatesTab 
@@ -526,7 +524,7 @@ const LecturerPage = () => {
                 courseMap={courseMap}
               />
             </TabPanel>
-            
+
             {/* Statistics Tab */}
             <TabPanel>
               <StatisticsTab 
@@ -541,7 +539,7 @@ const LecturerPage = () => {
         </Tabs>
       </Container>
 
-      
+
       {/* Application Details Modal */}
       {selectedApplication && (
         <ApplicationDetailsModal
@@ -567,10 +565,10 @@ const LecturerPage = () => {
           courseMap={courseMap}
         />
       )}
-      
+  
       <Footer />
-    </>
-  );
+    </Flex>
+  );  
 };
 
 export default LecturerPage;

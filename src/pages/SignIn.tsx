@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Box, Button, Input, FormControl, FormErrorMessage, Alert, AlertIcon, VStack, Heading, Container, Text, Center } from "@chakra-ui/react";
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import Sidebar from '../components/Sidebar'
 import { useRouter } from "next/router";
 import { useAuth } from "../context/AccountContext";
 
@@ -178,131 +177,134 @@ const SignIn = () => {
 
   // Render the SignIn component UI
   return (
-    <>
+    <Box minH="100vh" display="flex" flexDirection="column">
+      
       {/* Add the Header component */}
       <Header />
 
       {/* Main form container */}
-      <Container maxW="md" py={10}>
-        <Box
-          bg="gray.900"
-          borderColor="set.700"
-          borderWidth="1px"
-          borderRadius="md"
-          boxShadow="lg"
-          p={6}
-        >
-          <Center mb={6}>
-            <Heading as="h2" size="lg" fontFamily="heading" color="white">
-              Sign In
-            </Heading>
-          </Center>
-
-          <VStack spacing={6} align="stretch">
-            {/* Alert for successful login */}
-            {isSuccess && (
-              <Alert status="success" borderRadius="md" bg="set.700" color="white">
-                <AlertIcon />
-                Login successful! Redirecting...
-              </Alert>
-            )}
-            
-            {/* General error message */}
-            {generalError && (
-              <Alert status="error" borderRadius="md">
-                <AlertIcon />
-                {generalError}
-              </Alert>
-            )}
-
-              
-            <FormControl isInvalid={!!errors.email}>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                value={formState.email}
-                onChange={handleInputChange}
-                onKeyDown={(e) => {
-                  // Prevent spacebar input when field is empty
-                  if (e.key === " " && formState.email === "") {
-                    e.preventDefault();
-                  }
-                }}
-                onPaste={(e) => {
-                  // Clean pasted email addresses
-                  const pastedText = e.clipboardData.getData('text');
-                  e.preventDefault();
-                  
-                  
-                  const trimmedText = pastedText.trim();
-                  setFormState(prev => ({
-                    ...prev,
-                    email: trimmedText
-                  }));
-                  
-                  // Clear any existing errors
-                  if (errors.email) {
-                    setErrors(prev => ({ ...prev, email: undefined }));
-                  }
-                  if (generalError) {
-                    setGeneralError(null);
-                  }
-                }}
-                bg="gray.800"
-                borderColor="set.700"
-                _hover={{ borderColor: "set.600" }}
-                _focus={{ borderColor: "set.500", boxShadow: "0 0 0 1px #38a169" }}
-                py={6}
-              />
-              {errors.email && <FormErrorMessage>{errors.email}</FormErrorMessage>}
-            </FormControl>
-
-            {/* Password input field */}
-            <FormControl isInvalid={!!errors.password}>
-              <Input
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                value={formState.password}
-                onChange={handleInputChange}
-                bg="gray.800"
-                borderColor="set.700"
-                _hover={{ borderColor: "set.600" }}
-                _focus={{ borderColor: "set.500", boxShadow: "0 0 0 1px #38a169" }}
-                py={6}
-              />
-              {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
-            </FormControl>
-
-            {/* Submit button */}
-            <Box pt={2}>
-              <Button
-                bg="set.500"
-                color="white"
-                _hover={{ bg: "set.400" }}
-                onClick={handleSubmit}
-                isDisabled={isSuccess}
-                w="100%"
-                py={6}
-              >
+      <Box flex="1">
+        <Container maxW="md" py={10}>
+          <Box
+            bg="gray.900"
+            borderColor="set.700"
+            borderWidth="1px"
+            borderRadius="md"
+            boxShadow="lg"
+            p={6}
+          >
+            <Center mb={6}>
+              <Heading as="h2" size="lg" fontFamily="heading" color="white">
                 Sign In
-              </Button>
-            </Box>
+              </Heading>
+            </Center>
 
-            <Text fontSize="xs" color="gray.500" textAlign="center">
-              Sample logins:<br />
-              Tutor: tutor@example.com / Password123!<br />
-              Lecturer: lecturer@example.com / Password123!<br />
-              (Plus 10 more of each: tutor1-10@example.com, lecturer1-10@example.com)
-            </Text>
-          </VStack>
-        </Box>
-      </Container>
-      {/* Footer */}
+            <VStack spacing={6} align="stretch">
+              {/* Alert for successful login */}
+              {isSuccess && (
+                <Alert status="success" borderRadius="md" bg="set.700" color="white">
+                  <AlertIcon />
+                  Login successful! Redirecting...
+                </Alert>
+              )}
+
+              {/* General error message */}
+              {generalError && (
+                <Alert status="error" borderRadius="md">
+                  <AlertIcon />
+                  {generalError}
+                </Alert>
+              )}
+
+
+              <FormControl isInvalid={!!errors.email}>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  value={formState.email}
+                  onChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    // Prevent spacebar input when field is empty
+                    if (e.key === " " && formState.email === "") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Clean pasted email addresses
+                    const pastedText = e.clipboardData.getData('text');
+                    e.preventDefault();
+                    
+                    
+                    const trimmedText = pastedText.trim();
+                    setFormState(prev => ({
+                      ...prev,
+                      email: trimmedText
+                    }));
+                    
+                    // Clear any existing errors
+                    if (errors.email) {
+                      setErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                    if (generalError) {
+                      setGeneralError(null);
+                    }
+                  }}
+                  bg="gray.800"
+                  borderColor="set.700"
+                  _hover={{ borderColor: "set.600" }}
+                  _focus={{ borderColor: "set.500", boxShadow: "0 0 0 1px #38a169" }}
+                  py={6}
+                />
+                {errors.email && <FormErrorMessage>{errors.email}</FormErrorMessage>}
+              </FormControl>
+
+              {/* Password input field */}
+              <FormControl isInvalid={!!errors.password}>
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formState.password}
+                  onChange={handleInputChange}
+                  bg="gray.800"
+                  borderColor="set.700"
+                  _hover={{ borderColor: "set.600" }}
+                  _focus={{ borderColor: "set.500", boxShadow: "0 0 0 1px #38a169" }}
+                  py={6}
+                />
+                {errors.password && <FormErrorMessage>{errors.password}</FormErrorMessage>}
+              </FormControl>
+
+              {/* Submit button */}
+              <Box pt={2}>
+                <Button
+                  bg="set.500"
+                  color="white"
+                  _hover={{ bg: "set.400" }}
+                  onClick={handleSubmit}
+                  isDisabled={isSuccess}
+                  w="100%"
+                  py={6}
+                >
+                  Sign In
+                </Button>
+              </Box>
+
+              <Text fontSize="xs" color="gray.500" textAlign="center">
+                Sample logins:<br />
+                Tutor: tutor@example.com / Password123!<br />
+                Lecturer: lecturer@example.com / Password123!<br />
+                (Plus 10 more of each: tutor1-10@example.com, lecturer1-10@example.com)
+              </Text>
+            </VStack>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Footer Component*/}
       <Footer />
-
-    </>
+    </Box>
   );
 };
 

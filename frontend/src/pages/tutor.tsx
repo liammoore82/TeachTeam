@@ -23,12 +23,13 @@ import Footer from '../components/Footer';
 type Course = {
   code: string;
   name: string;
+  roles: string[]; // Array of available roles for this course
 };
-
 
 type TutorFormData = {
   name: string;
   selectedCourse: string;
+  selectedRole: string; // New field for role selection
   availability: string;
   skills: string;
   credentials: string;
@@ -36,12 +37,28 @@ type TutorFormData = {
   timestamp?: string;
 };
 
-// Courses data
+// Updated courses data with role information
 const courses: Course[] = [
-  { code: 'COSC1822', name: 'Full Stack Development - Tutor' },
-  { code: 'COSC8288', name: 'Programming Studio 2 - Tutor' },
-  { code: 'COSC3945', name: 'Software Engineering Fundamentals - Lab Assistant' },
-  { code: 'COSC5324', name: 'Programming Bootcamp 2 - Tutor' },
+  { 
+    code: 'COSC1822', 
+    name: 'Full Stack Development', 
+    roles: ['tutor', 'lab-assistant'] 
+  },
+  { 
+    code: 'COSC8288', 
+    name: 'Programming Studio 2', 
+    roles: ['tutor'] 
+  },
+  { 
+    code: 'COSC3945', 
+    name: 'Software Engineering Fundamentals', 
+    roles: ['lab-assistant', 'tutor'] 
+  },
+  { 
+    code: 'COSC5324', 
+    name: 'Programming Bootcamp 2', 
+    roles: ['tutor'] 
+  },
 ];
 
 const TutorDashboard = () => {
@@ -49,20 +66,24 @@ const TutorDashboard = () => {
   const router = useRouter();
   const toast = useToast();
 
-  
   const [name, setName] = useState<string>('');
   const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>(''); // New state for role
   const [availability, setAvailability] = useState<string>('');
   const [skills, setSkills] = useState<string>('');
   const [credentials, setCredentials] = useState<string>('');
   const [previousRoles, setPreviousRoles] = useState<string>('');
 
-  
   const [formComplete, setFormComplete] = useState<boolean>(false);
+
+  // Get available roles for selected course
+  const getAvailableRoles = (): string[] => {
+    const course = courses.find(c => c.code === selectedCourse);
+    return course ? course.roles : [];
+  };
 
   // Authentication and data loading effect
   useEffect(() => {
-
     if (!signedIn) {
       router.push('/unauthorised');
       return;
@@ -74,6 +95,11 @@ const TutorDashboard = () => {
     loadSavedData();
   }, [signedIn, userRole, router]);
 
+  // Reset role when course changes
+  useEffect(() => {
+    setSelectedRole('');
+  }, [selectedCourse]);
+
   // Load any previously saved application data
   const loadSavedData = (): void => {
     const storageKey = `tutorApplicationData_${userEmail || 'anonymous'}`;
@@ -84,6 +110,7 @@ const TutorDashboard = () => {
         const parsedData: TutorFormData = JSON.parse(savedData);
         setName(parsedData.name || '');
         setSelectedCourse(parsedData.selectedCourse || '');
+        setSelectedRole(parsedData.selectedRole || ''); // Load saved role
         setAvailability(parsedData.availability || '');
         setSkills(parsedData.skills || '');
         setCredentials(parsedData.credentials || '');
@@ -92,6 +119,28 @@ const TutorDashboard = () => {
     } catch (error) {
       console.error('Error loading saved data:', error);
     }
+  };
+
+  // Check if candidate already applied for the same course and role combination
+  const checkDuplicateApplication = (): boolean => {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('tutorApplicationData') && key !== `tutorApplicationData_${userEmail || 'anonymous'}`) {
+        try {
+          const applicationData = localStorage.getItem(key);
+          if (applicationData) {
+            const parsedApplication = JSON.parse(applicationData);
+            if (parsedApplication.selectedCourse === selectedCourse && 
+                parsedApplication.selectedRole === selectedRole) {
+              return true; // Duplicate found
+            }
+          }
+        } catch (error) {
+          console.error('Error checking duplicate application:', error);
+        }
+      }
+    }
+    return false; // No duplicate found
   };
 
   // Form submission handler
@@ -119,6 +168,17 @@ const TutorDashboard = () => {
       return;
     }
 
+    if (!selectedRole) {
+      toast({
+        title: 'Role Required',
+        description: 'Please select a role (Tutor or Lab Assistant).',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
     if (!availability || !skills || !credentials) {
       toast({
         title: 'Incomplete Form',
@@ -130,10 +190,22 @@ const TutorDashboard = () => {
       return;
     }
 
-    
+    // Check for duplicate application
+    if (checkDuplicateApplication()) {
+      toast({
+        title: 'Duplicate Application',
+        description: `You have already applied for ${selectedRole} role in ${selectedCourse}. You cannot apply for the same role twice.`,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const formData: TutorFormData = {
       name,
       selectedCourse,
+      selectedRole, // Include role in form data
       availability,
       skills,
       credentials,
@@ -141,14 +213,14 @@ const TutorDashboard = () => {
       timestamp: new Date().toISOString(),
     };
 
-    // Save to localStorage
-    const storageKey = `tutorApplicationData_${userEmail || 'anonymous'}`;
+    // Save to localStorage with role included in the key for uniqueness
+    const storageKey = `tutorApplicationData_${selectedCourse}_${selectedRole}_${userEmail || 'anonymous'}`;
     localStorage.setItem(storageKey, JSON.stringify(formData));
 
     // success message
     toast({
       title: 'Application Submitted',
-      description: 'Your application has been saved.',
+      description: `Your application for ${selectedRole} role in ${selectedCourse} has been saved.`,
       status: 'success',
       duration: 4000,
       isClosable: true,
@@ -161,14 +233,22 @@ const TutorDashboard = () => {
   const clearFormFields = (): void => {
     setName('');
     setSelectedCourse('');
+    setSelectedRole('');
     setAvailability('');
     setSkills('');
     setCredentials('');
     setPreviousRoles('');
 
     if (!formComplete) {
-      const storageKey = `tutorApplicationData_${userEmail || 'anonymous'}`;
-      localStorage.removeItem(storageKey);
+      // Clear all application data for this user
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes(`tutorApplicationData_`) && key.includes(userEmail || 'anonymous')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
 
       toast({
         title: 'Form Cleared',
@@ -188,7 +268,7 @@ const TutorDashboard = () => {
       <Container maxW="container.md" py={10}>
         <Center mb={10}>
           <Heading as="h1" size="xl" fontFamily="heading" color="white">
-            Tutor Dashboard
+            Candidate Dashboard
           </Heading>
         </Center>
         <Box
@@ -231,6 +311,31 @@ const TutorDashboard = () => {
                   </option>
                 ))}
               </Select>
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Apply for Role</FormLabel>
+              <Select
+                placeholder="Select a role"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                bg="gray.800"
+                borderColor="set.700"
+                _hover={{ borderColor: "set.600" }}
+                _focus={{ borderColor: "set.500", boxShadow: "0 0 0 1px #38a169" }}
+                isDisabled={!selectedCourse}
+              >
+                {getAvailableRoles().map((role) => (
+                  <option key={role} value={role}>
+                    {role === 'tutor' ? 'Tutor' : 'Lab Assistant'}
+                  </option>
+                ))}
+              </Select>
+              {!selectedCourse && (
+                <Box mt={1} fontSize="sm" color="gray.400">
+                  Select a course first to see available roles
+                </Box>
+              )}
             </FormControl>
 
             <FormControl isRequired>

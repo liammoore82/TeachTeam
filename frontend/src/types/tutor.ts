@@ -1,20 +1,24 @@
-export type TutorApplication = {
-    id: string;
-    name: string;
-    selectedCourse: string;
-    availability: string;
-    skills: string;
-    credentials: string;
-    previousRoles: string;
-    email: string;
-    timestamp?: string;
-  }
-  
-  export type SelectedCandidate = {
-    applicationId: string;
-    name: string;
-    email: string;
-    course: string;
-    rank: number;
-    comments: string;
-  }
+// types/tutor.ts
+
+export interface TutorApplication {
+  id: string;
+  name: string;
+  selectedCourse: string;
+  selectedRole: string; // New field for role (tutor or lab-assistant)
+  availability: string;
+  skills: string;
+  credentials: string;
+  previousRoles: string;
+  email: string;
+  timestamp: string;
+}
+
+export interface SelectedCandidate {
+  applicationId: string;
+  name: string;
+  email: string;
+  course: string;
+  role: string; // New field for role
+  rank: number;
+  comments: string;
+}

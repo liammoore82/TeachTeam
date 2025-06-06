@@ -16,10 +16,10 @@ import { TutorApplication, SelectedCandidate } from '../types/tutor';
 
 
 export const courseMap: {[key: string]: string} = {
-  'COSC1822': 'Full Stack Development - Tutor',
-  'COSC8288': 'Programming Studio 2 - Tutor',
-  'COSC3945': 'Software Engineering Fundamentals - Lab Assistant',
-  'COSC5324': 'Programming Bootcamp 2 - Tutor',
+  'COSC1822': 'Full Stack Development',
+  'COSC8288': 'Programming Studio 2',
+  'COSC3945': 'Software Engineering Fundamentals',
+  'COSC5324': 'Programming Bootcamp 2',
 };
 
 // component for the Lecturer dashboard page
@@ -46,6 +46,7 @@ const LecturerPage = () => {
 
   // Filter states for application filtering and sorting
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>(''); // New role filter
   const [selectedAvailabilityFilter, setSelectedAvailabilityFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchBy, setSearchBy] = useState<string>('all');
@@ -87,10 +88,10 @@ const LecturerPage = () => {
     loadAllLecturerSelections();
   }, []);
 
-  // Filter applications when filter criteria change
+  // Filter applications when filter criteria change (added selectedRoleFilter)
   useEffect(() => {
     filterAndSortApplications();
-  }, [selectedCourseFilter, selectedAvailabilityFilter, allApplications, searchQuery, searchBy, sortBy, sortOrder]);
+  }, [selectedCourseFilter, selectedRoleFilter, selectedAvailabilityFilter, allApplications, searchQuery, searchBy, sortBy, sortOrder]);
 
   // Function to filter and sort applications based on current criteria
   
@@ -101,6 +102,11 @@ const LecturerPage = () => {
     // Apply course filter if selected
     if (selectedCourseFilter) {
       result = result.filter(app => app.selectedCourse === selectedCourseFilter);
+    }
+
+    // Apply role filter if selected
+    if (selectedRoleFilter) {
+      result = result.filter(app => app.selectedRole === selectedRoleFilter);
     }
     
     // Apply availability filter if selected
@@ -120,6 +126,7 @@ const LecturerPage = () => {
           return app.selectedCourse.toLowerCase().includes(query) || 
             (courseMap[app.selectedCourse] && courseMap[app.selectedCourse].toLowerCase().includes(query));
         }
+        if (searchBy === 'role') return app.selectedRole.toLowerCase().includes(query);
         if (searchBy === 'availability') return app.availability.toLowerCase().includes(query);
         if (searchBy === 'skills') return app.skills.toLowerCase().includes(query);
         
@@ -129,6 +136,7 @@ const LecturerPage = () => {
           app.email.toLowerCase().includes(query) ||
           app.selectedCourse.toLowerCase().includes(query) ||
           (courseMap[app.selectedCourse] && courseMap[app.selectedCourse].toLowerCase().includes(query)) ||
+          app.selectedRole.toLowerCase().includes(query) ||
           app.availability.toLowerCase().includes(query) ||
           app.skills.toLowerCase().includes(query) ||
           app.credentials.toLowerCase().includes(query) ||
@@ -150,6 +158,9 @@ const LecturerPage = () => {
       } else if (sortBy === 'course') {
         valueA = a.selectedCourse;
         valueB = b.selectedCourse;
+      } else if (sortBy === 'role') {
+        valueA = a.selectedRole;
+        valueB = b.selectedRole;
       } else if (sortBy === 'availability') {
         valueA = a.availability;
         valueB = b.availability;
@@ -186,8 +197,14 @@ const LecturerPage = () => {
             // Parse stored JSON data
             const parsedApplication = JSON.parse(applicationData);
             let email = 'applicant@example.com';
-            // Extract email from key name
-            if (key.includes('_')) {
+            
+            // Extract email from key name - handle new format with course and role
+            const keyParts = key.split('_');
+            if (keyParts.length >= 4) {
+              // New format: tutorApplicationData_COURSE_ROLE_EMAIL
+              email = keyParts[keyParts.length - 1];
+            } else if (key.includes('_')) {
+              // Old format: tutorApplicationData_EMAIL
               email = key.substring(key.indexOf('_') + 1);
             }
             
@@ -196,6 +213,7 @@ const LecturerPage = () => {
               id: key,
               name: parsedApplication.name || email.split('@')[0].replace('.', ' '),
               selectedCourse: parsedApplication.selectedCourse,
+              selectedRole: parsedApplication.selectedRole || 'tutor', // Default to tutor for backward compatibility
               availability: parsedApplication.availability,
               skills: parsedApplication.skills,
               credentials: parsedApplication.credentials,
@@ -217,9 +235,10 @@ const LecturerPage = () => {
     if (applications.length === 0) {
       applications.push(
         {
-          id: 'mock_john.doe@example.com',
+          id: 'mock_john.doe@example.com_tutor',
           name: 'John Doe',
           selectedCourse: 'COSC1822',
+          selectedRole: 'tutor',
           availability: 'part-time',
           skills: 'JavaScript, React, Node.js, Express, MongoDB',
           credentials: 'Bachelor of Computer Science, RMIT University',
@@ -228,15 +247,28 @@ const LecturerPage = () => {
           timestamp: '2025-03-15T10:30:00Z'
         },
         {
-          id: 'mock_jane.smith@example.com',
+          id: 'mock_jane.smith@example.com_lab-assistant',
           name: 'Jane Smith',
-          selectedCourse: 'COSC8288',
+          selectedCourse: 'COSC3945',
+          selectedRole: 'lab-assistant',
           availability: 'full-time',
           skills: 'Java, Spring Boot, SQL, Git, Docker',
           credentials: 'Master of Software Engineering, University of Melbourne',
           previousRoles: '',
           email: 'jane.smith@example.com',
           timestamp: '2025-03-18T14:20:00Z'
+        },
+        {
+          id: 'mock_alex.brown@example.com_tutor',
+          name: 'Alex Brown',
+          selectedCourse: 'COSC8288',
+          selectedRole: 'tutor',
+          availability: 'part-time',
+          skills: 'Python, Django, REST APIs, PostgreSQL',
+          credentials: 'Bachelor of Information Technology, Monash University',
+          previousRoles: 'Tutor for Introduction to Programming',
+          email: 'alex.brown@example.com',
+          timestamp: '2025-03-20T09:15:00Z'
         }
       );
     }
@@ -339,6 +371,7 @@ const LecturerPage = () => {
       name: selectedApplication.name,
       email: selectedApplication.email,
       course: selectedApplication.selectedCourse,
+      role: selectedApplication.selectedRole, // Include role in selected candidate
       rank: existingIndex >= 0 ? selectedCandidates[existingIndex].rank : selectedCandidates.length + 1,
       comments: candidateComment
     };
@@ -499,6 +532,8 @@ const LecturerPage = () => {
                 selectedCandidates={selectedCandidates}
                 selectedCourseFilter={selectedCourseFilter}
                 setSelectedCourseFilter={setSelectedCourseFilter}
+                selectedRoleFilter={selectedRoleFilter}
+                setSelectedRoleFilter={setSelectedRoleFilter}
                 selectedAvailabilityFilter={selectedAvailabilityFilter}
                 setSelectedAvailabilityFilter={setSelectedAvailabilityFilter}
                 searchQuery={searchQuery}

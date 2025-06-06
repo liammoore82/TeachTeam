@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter,
-  ModalBody, ModalCloseButton, Button, VStack, Box, Text, Textarea,
+  ModalBody, ModalCloseButton, Button, VStack, Box, Text, Textarea, Badge,
 } from '@chakra-ui/react';
 import { SelectedCandidate } from '../../types/tutor';
 
@@ -35,6 +35,14 @@ const EditCommentModal = ({
               <Text fontSize="sm" color="gray.400">{candidate.email}</Text>
               <Text fontSize="sm">
                 Course: {candidate.course} - {courseMap[candidate.course]}
+              </Text>
+              <Text fontSize="sm">
+                Role: <Badge 
+                  colorScheme={candidate.role === 'tutor' ? 'teal' : 'orange'}
+                  ml={1}
+                >
+                  {candidate.role === 'tutor' ? 'Tutor' : 'Lab Assistant'}
+                </Badge>
               </Text>
               <Text fontSize="sm">Rank: {candidate.rank}</Text>
             </Box>

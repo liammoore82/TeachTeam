@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Text, Tag, Button,
-  IconButton, HStack, VStack, Center,
+  IconButton, HStack, VStack, Center, Badge,
 } from '@chakra-ui/react';
 import { SelectedCandidate } from '../../types/tutor';
 
@@ -47,6 +47,7 @@ const SelectedCandidatesTab = ({
               <Th color="gray.400">Name</Th>
               <Th color="gray.400">Email</Th>
               <Th color="gray.400">Course</Th>
+              <Th color="gray.400">Role</Th>
               <Th color="gray.400">Comments</Th>
               <Th color="gray.400">Actions</Th>
             </Tr>
@@ -85,6 +86,14 @@ const SelectedCandidatesTab = ({
                     <Tag colorScheme="purple">
                       {candidate.course} - {courseMap[candidate.course]}
                     </Tag>
+                  </Td>
+                  <Td>
+                    <Badge 
+                      colorScheme={candidate.role === 'tutor' ? 'teal' : 'orange'}
+                      fontSize="sm"
+                    >
+                      {candidate.role === 'tutor' ? 'Tutor' : 'Lab Assistant'}
+                    </Badge>
                   </Td>
                   <Td>
                     <Text noOfLines={2}>{candidate.comments || 'No comments'}</Text>

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter,
   ModalBody, ModalCloseButton, Button, VStack, Box, Text,
-  Divider, Textarea,
+  Divider, Textarea, Badge,
 } from '@chakra-ui/react';
 import { TutorApplication } from '../../types/tutor';
 
@@ -51,6 +51,18 @@ const ApplicationDetailsModal = ({
               <Text>
                 {application.selectedCourse} - {courseMap[application.selectedCourse] || 'Unknown Course'}
               </Text>
+            </Box>
+
+            <Box>
+              <Text fontWeight="bold">Applied Role</Text>
+              <Badge 
+                colorScheme={application.selectedRole === 'tutor' ? 'teal' : 'orange'}
+                fontSize="md"
+                px={3}
+                py={1}
+              >
+                {application.selectedRole === 'tutor' ? 'Tutor' : 'Lab Assistant'}
+              </Badge>
             </Box>
 
             <Box>

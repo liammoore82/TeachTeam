@@ -11,6 +11,8 @@ type ApplicationsTabProps = {
   selectedCandidates: SelectedCandidate[];
   selectedCourseFilter: string;
   setSelectedCourseFilter: (value: string) => void;
+  selectedRoleFilter: string; 
+  setSelectedRoleFilter: (value: string) => void; 
   selectedAvailabilityFilter: string;
   setSelectedAvailabilityFilter: (value: string) => void;
   searchQuery: string;
@@ -53,6 +55,9 @@ const ApplicationCard = ({
             {app.availability === 'full-time' ? 'Full Time' : 'Part Time'}
           </Badge>
           <Badge ml={2} colorScheme="purple">{app.selectedCourse}</Badge>
+          <Badge ml={2} colorScheme={app.selectedRole === 'tutor' ? 'teal' : 'orange'}>
+            {app.selectedRole === 'tutor' ? 'Tutor' : 'Lab Assistant'}
+          </Badge>
         </Text>
         <Text mt={2} fontSize="sm" noOfLines={2}>
           <strong>Skills:</strong> {app.skills}
@@ -87,6 +92,8 @@ const ApplicationsTab = ({
   selectedCandidates,
   selectedCourseFilter,
   setSelectedCourseFilter,
+  selectedRoleFilter,
+  setSelectedRoleFilter,
   selectedAvailabilityFilter,
   setSelectedAvailabilityFilter,
   searchQuery,
@@ -105,6 +112,7 @@ const ApplicationsTab = ({
     setSearchQuery('');
     setSearchBy('all');
     setSelectedCourseFilter('');
+    setSelectedRoleFilter(''); 
     setSelectedAvailabilityFilter('');
     setSortBy('timestamp');
     setSortOrder('desc');
@@ -122,12 +130,12 @@ const ApplicationsTab = ({
       mb={10}
     >
       <Heading as="h2" size="lg" mb={4}>
-        Tutor Applications
+        All Applications
       </Heading>
 
       {/* Search and Filter Controls */}
       <Box bg="gray.800" p={4} borderRadius="md" mb={6}>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={4}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4} mb={4}>
           <Select
             placeholder="Filter by course"
             bg="gray.700"
@@ -140,6 +148,18 @@ const ApplicationsTab = ({
                 {code} - {name}
               </option>
             ))}
+          </Select>
+
+          {/* New Role Filter */}
+          <Select
+            placeholder="Filter by role"
+            bg="gray.700"
+            borderColor="set.700"
+            value={selectedRoleFilter}
+            onChange={(e) => setSelectedRoleFilter(e.target.value)}
+          >
+            <option value="tutor">Tutor</option>
+            <option value="lab-assistant">Lab Assistant</option>
           </Select>
 
           <Select
@@ -171,10 +191,13 @@ const ApplicationsTab = ({
             <option value="name">Search by Name</option>
             <option value="email">Search by Email</option>
             <option value="course">Search by Course</option>
+            <option value="role">Search by Role</option>
             <option value="availability">Search by Availability</option>
             <option value="skills">Search by Skills</option>
           </Select>
+        </SimpleGrid>
 
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
           <Select
             value={`${sortBy}-${sortOrder}`}
             onChange={(e) => {
@@ -191,14 +214,16 @@ const ApplicationsTab = ({
             <option value="name-desc">Sort by: Name (Z-A)</option>
             <option value="course-asc">Sort by: Course (A-Z)</option>
             <option value="course-desc">Sort by: Course (Z-A)</option>
+            <option value="role-asc">Sort by: Role (A-Z)</option>
+            <option value="role-desc">Sort by: Role (Z-A)</option>
           </Select>
-        </SimpleGrid>
 
-        <HStack justifyContent="flex-end">
-          <Button size="sm" onClick={clearFilters} variant="outline">
-            Clear Filters
-          </Button>
-        </HStack>
+          <HStack justifyContent="flex-end">
+            <Button size="sm" onClick={clearFilters} variant="outline">
+              Clear Filters
+            </Button>
+          </HStack>
+        </SimpleGrid>
       </Box>
 
       {filteredApplications.length === 0 ? (

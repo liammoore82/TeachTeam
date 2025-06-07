@@ -3,8 +3,8 @@ import { Box, Button, Input, FormControl, FormErrorMessage, Alert, AlertIcon, VS
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useRouter } from "next/router";
-// import { useAuth } from "../context/AccountContext"; // Not yet needed
-// import { userService } from "../services/userService"; // Not yet needed
+import { useAuth } from "../context/AccountContext"; // Now imported
+import { userService } from "../services/userService"; // Now imported
 
 // Creating form interface
 interface FormState {
@@ -23,8 +23,8 @@ interface FormErrors {
 }
 
 const SignUp = () => {
-  // Get login function from authentication context (Placeholder for now)
-  // const { login } = useAuth();
+  // Get login function from authentication context
+  const { login } = useAuth();
 
   // To redirect after signup
   const router = useRouter();
@@ -40,13 +40,13 @@ const SignUp = () => {
   // Track validation errors
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Flag successful signup (Placeholder for now)
+  // Flag successful signup
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // General error message (Placeholder for now)
+  // General error message
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  // Loading state (Placeholder for now)
+  // Loading state
   const [isLoading, setIsLoading] = useState(false);
 
   // Handle changes to input fields
@@ -70,7 +70,7 @@ const SignUp = () => {
       }));
     }
 
-    // Clear general error when user starts typing again (if it exists)
+    // Clear general error when user starts typing again
     if (generalError) {
       setGeneralError(null);
     }
@@ -113,13 +113,51 @@ const SignUp = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Placeholder for form submission
+  // Handle form submission
   const handleSubmit = async () => {
-    if (validateForm()) { // Only proceed if validation passes
-      console.log("Form is valid, ready to submit (placeholder)");
-      // ... (actual submission logic will go here in next commit)
-    } else {
-      console.log("Form has validation errors.");
+    if (validateForm()) {
+      setIsLoading(true);
+      setGeneralError(null);
+
+      try {
+        // Create user through API
+        const newUser = await userService.createUser({
+          email: formState.email,
+          password: formState.password,
+          role: formState.role
+        });
+
+        // Signup successful
+        setIsSuccess(true);
+
+        // Auto-login the user
+        login(`token_${newUser.email}`, newUser.role); // Assuming login handles token and role from response
+
+        // Redirect based on user role after a short delay
+        setTimeout(() => {
+          if (newUser.role === "lecturer") {
+            router.push("/lecturer");
+          } else if (newUser.role === "candidate") {
+            router.push("/tutor");
+          } else if (newUser.role === "admin") {
+            router.push("/admin");
+          } else {
+            // Fallback to home page
+            router.push("/");
+          }
+        }, 1500);
+
+      } catch (error: any) {
+        console.error("Signup error:", error);
+
+        if (error.response?.status === 409) {
+          setGeneralError("An account with this email already exists");
+        } else {
+          setGeneralError("An error occurred during signup. Please try again.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -148,7 +186,7 @@ const SignUp = () => {
             </Center>
 
             <VStack spacing={6} align="stretch">
-              {/* Alert for successful signup (still placeholder) */}
+              {/* Alert for successful signup */}
               {isSuccess && (
                 <Alert status="success" borderRadius="md" bg="set.700" color="white">
                   <AlertIcon />
@@ -156,7 +194,7 @@ const SignUp = () => {
                 </Alert>
               )}
 
-              {/* General error message (still placeholder) */}
+              {/* General error message */}
               {generalError && (
                 <Alert status="error" borderRadius="md">
                   <AlertIcon />

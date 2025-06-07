@@ -133,7 +133,7 @@ const StatisticsTab = ({
       </Box>
     );
   }
-  
+
 
   const {
     mostChosen,
@@ -191,7 +191,7 @@ const StatisticsTab = ({
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={barChartData}>
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis allowDecimals={false} tickCount={statistics.mostChosenCount + 1} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#38B2AC" />
                 </BarChart>

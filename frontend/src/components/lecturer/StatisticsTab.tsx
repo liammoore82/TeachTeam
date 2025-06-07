@@ -219,6 +219,7 @@ const StatisticsTab = ({
 
         {/* Lists for Most/Least/Unselected */}
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+          {/* Most Chosen */}
           <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
             <CardBody>
               <Heading size="md" mb={3} color="green.400">
@@ -249,6 +250,7 @@ const StatisticsTab = ({
             </CardBody>
           </Card>
 
+          {/* Least Chosen */}
           <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
             <CardBody>
               <Heading size="md" mb={3} color="yellow.400">

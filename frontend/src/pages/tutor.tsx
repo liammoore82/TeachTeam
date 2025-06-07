@@ -18,6 +18,9 @@ import {
 import { useAuth } from '../context/AccountContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { applicationService } from '../services/applicationService';
+import { courseService } from '../services/courseService';
+import { userService } from '../services/userService';
 
 
 type Course = {
@@ -37,29 +40,6 @@ type TutorFormData = {
   timestamp?: string;
 };
 
-// Updated courses data with role information
-const courses: Course[] = [
-  { 
-    code: 'COSC1822', 
-    name: 'Full Stack Development', 
-    roles: ['tutor', 'lab-assistant'] 
-  },
-  { 
-    code: 'COSC8288', 
-    name: 'Programming Studio 2', 
-    roles: ['tutor'] 
-  },
-  { 
-    code: 'COSC3945', 
-    name: 'Software Engineering Fundamentals', 
-    roles: ['lab-assistant', 'tutor'] 
-  },
-  { 
-    code: 'COSC5324', 
-    name: 'Programming Bootcamp 2', 
-    roles: ['tutor'] 
-  },
-];
 
 const TutorDashboard = () => {
   const { signedIn, userRole, userEmail } = useAuth();
@@ -73,6 +53,9 @@ const TutorDashboard = () => {
   const [skills, setSkills] = useState<string>('');
   const [credentials, setCredentials] = useState<string>('');
   const [previousRoles, setPreviousRoles] = useState<string>('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [formComplete, setFormComplete] = useState<boolean>(false);
 
@@ -88,11 +71,11 @@ const TutorDashboard = () => {
       router.push('/unauthorised');
       return;
     }
-    if (userRole !== 'tutor') {
+    if (userRole !== 'candidate') {
       router.push('/unauthorised');
       return;
     }
-    loadSavedData();
+    loadUserDataFromAPI();
   }, [signedIn, userRole, router]);
 
   // Reset role when course changes
@@ -100,51 +83,76 @@ const TutorDashboard = () => {
     setSelectedRole('');
   }, [selectedCourse]);
 
-  // Load any previously saved application data
-  const loadSavedData = (): void => {
-    const storageKey = `tutorApplicationData_${userEmail || 'anonymous'}`;
-
+  // Load user data and courses from API
+  const loadUserDataFromAPI = async (): Promise<void> => {
     try {
-      const savedData = localStorage.getItem(storageKey);
-      if (savedData) {
-        const parsedData: TutorFormData = JSON.parse(savedData);
-        setName(parsedData.name || '');
-        setSelectedCourse(parsedData.selectedCourse || '');
-        setSelectedRole(parsedData.selectedRole || ''); // Load saved role
-        setAvailability(parsedData.availability || '');
-        setSkills(parsedData.skills || '');
-        setCredentials(parsedData.credentials || '');
-        setPreviousRoles(parsedData.previousRoles || '');
+      setIsLoading(true);
+
+      // Load courses and current user concurrently
+      const [coursesData, userData] = await Promise.all([
+        courseService.getAllCourses(),
+        userService.getCurrentUser(userEmail!)
+      ]);
+
+      setCourses(coursesData.map(course => ({
+        code: course.code,
+        name: course.title,
+        roles: course.roleType === 'Tutor' ? ['tutor'] : ['lab-assistant']
+      })));
+
+      setCurrentUser(userData);
+
+      // Load any existing applications for this user
+      const userApplications = await applicationService.getApplicationsByUser(userData.id);
+      
+      // If user has a pending application, populate the form
+      if (userApplications.length > 0) {
+        const latestApp = userApplications[0]; // Get most recent application
+        setName(latestApp.name || '');
+        setSelectedCourse(latestApp.selectedCourse || '');
+        setSelectedRole(latestApp.selectedRole || '');
+        setAvailability(latestApp.availability || '');
+        setSkills(latestApp.skills || '');
+        setCredentials(latestApp.credentials || '');
+        setPreviousRoles(latestApp.previousRoles || '');
       }
+
     } catch (error) {
-      console.error('Error loading saved data:', error);
+      console.error('Error loading user data:', error);
+      toast({
+        title: 'Error Loading Data',
+        description: 'Failed to load user data. Please refresh the page.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Check if candidate already applied for the same course and role combination
-  const checkDuplicateApplication = (): boolean => {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('tutorApplicationData') && key !== `tutorApplicationData_${userEmail || 'anonymous'}`) {
-        try {
-          const applicationData = localStorage.getItem(key);
-          if (applicationData) {
-            const parsedApplication = JSON.parse(applicationData);
-            if (parsedApplication.selectedCourse === selectedCourse && 
-                parsedApplication.selectedRole === selectedRole) {
-              return true; // Duplicate found
-            }
-          }
-        } catch (error) {
-          console.error('Error checking duplicate application:', error);
-        }
-      }
+  const checkDuplicateApplication = async (): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    try {
+      const userApplications = await applicationService.getApplicationsByUser(currentUser.id);
+      
+      // Check if user already has an application for this course/role combination
+      const duplicate = userApplications.find(app => 
+        app.selectedCourse === selectedCourse && 
+        app.selectedRole === selectedRole
+      );
+
+      return !!duplicate;
+    } catch (error) {
+      console.error('Error checking duplicate application:', error);
+      return false;
     }
-    return false; // No duplicate found
   };
 
   // Form submission handler
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     // Validate required fields
     if (!name) {
       toast({
@@ -191,7 +199,8 @@ const TutorDashboard = () => {
     }
 
     // Check for duplicate application
-    if (checkDuplicateApplication()) {
+    const isDuplicate = await checkDuplicateApplication();
+    if (isDuplicate) {
       toast({
         title: 'Duplicate Application',
         description: `You have already applied for ${selectedRole} role in ${selectedCourse}. You cannot apply for the same role twice.`,
@@ -202,31 +211,51 @@ const TutorDashboard = () => {
       return;
     }
 
-    const formData: TutorFormData = {
-      name,
-      selectedCourse,
-      selectedRole, // Include role in form data
-      availability,
-      skills,
-      credentials,
-      previousRoles,
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      setIsLoading(true);
 
-    // Save to localStorage with role included in the key for uniqueness
-    const storageKey = `tutorApplicationData_${selectedCourse}_${selectedRole}_${userEmail || 'anonymous'}`;
-    localStorage.setItem(storageKey, JSON.stringify(formData));
+      // Find the course ID from the database
+      const allCourses = await courseService.getAllCourses();
+      const course = allCourses.find(c => c.code === selectedCourse);
+      
+      if (!course || !currentUser) {
+        throw new Error('Course or user not found');
+      }
 
-    // success message
-    toast({
-      title: 'Application Submitted',
-      description: `Your application for ${selectedRole} role in ${selectedCourse} has been saved.`,
-      status: 'success',
-      duration: 4000,
-      isClosable: true,
-    });
+      // Submit application to API
+      await applicationService.createApplication({
+        fullName: name,
+        courseId: course.id,
+        availability: availability as 'full-time' | 'part-time',
+        skills,
+        credentials,
+        previousRoles,
+        userId: currentUser.id
+      });
 
-    setFormComplete(true);
+      // Success message
+      toast({
+        title: 'Application Submitted',
+        description: `Your application for ${selectedRole} role in ${selectedCourse} has been submitted successfully.`,
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+
+      setFormComplete(true);
+
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: 'Submission Failed',
+        description: error.response?.data?.error || 'Failed to submit application. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Clear form fields
@@ -239,25 +268,14 @@ const TutorDashboard = () => {
     setCredentials('');
     setPreviousRoles('');
 
-    if (!formComplete) {
-      // Clear all application data for this user
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.includes(`tutorApplicationData_`) && key.includes(userEmail || 'anonymous')) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+    toast({
+      title: 'Form Cleared',
+      description: 'All fields have been cleared.',
+      status: 'info',
+      duration: 3000,
+      isClosable: true,
+    });
 
-      toast({
-        title: 'Form Cleared',
-        description: 'All fields have been cleared.',
-        status: 'info',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
     setFormComplete(false);
   };
 

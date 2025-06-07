@@ -11,6 +11,7 @@ export interface TutorApplication {
   previousRoles: string;
   email: string;
   timestamp: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
 }
 
 export interface SelectedCandidate {

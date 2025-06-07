@@ -3,16 +3,44 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AccountContext';
 
 const Header = () => {
-  const { signedIn, userEmail, logout } = useAuth()!;
+  const { signedIn, userEmail, userRole, isLoading, logout } = useAuth()!;
   const router = useRouter();
   
   // Direct handling of logout with manual redirect
   const handleLogout = () => {
-    
     logout();
-    
     // Force a redirect to sign in page
     window.location.href = '/SignIn';
+  };
+
+  // Get dashboard path based on user role
+  const getDashboardPath = () => {
+    switch (userRole) {
+      case 'lecturer':
+        return '/lecturer';
+      case 'candidate':
+        return '/tutor';
+      case 'admin':
+        return '/admin';
+      default:
+        return '/';
+    }
+  };
+
+  // Navigate to user's dashboard
+  const goToDashboard = () => {
+    router.push(getDashboardPath());
+  };
+
+  // Navigate to profile with debugging
+  const goToProfile = () => {
+    console.log('Profile button clicked, signedIn:', signedIn, 'userEmail:', userEmail, 'isLoading:', isLoading);
+    if (!isLoading && signedIn) {
+      router.push('/profile');
+    } else if (!isLoading && !signedIn) {
+      console.log('Not signed in, redirecting to sign in');
+      router.push('/SignIn');
+    }
   };
 
   
@@ -99,6 +127,24 @@ const Header = () => {
               <Text fontSize="sm" color="set.200">
                 {userEmail}
               </Text>
+              <Button 
+                bg="set.500" 
+                color="white" 
+                _hover={{ bg: 'set.600' }}
+                size="sm"
+                onClick={goToDashboard}
+              >
+                Dashboard
+              </Button>
+              <Button 
+                variant="ghost" 
+                color="gray.300" 
+                _hover={{ bg: 'whiteAlpha.100', color: 'set.300' }}
+                size="sm"
+                onClick={goToProfile}
+              >
+                Profile
+              </Button>
               <Button 
                 variant="outline" 
                 borderColor="set.400"

@@ -51,4 +51,129 @@ export class LecturerSelectionController {
       res.status(500).json({ error: 'Failed to fetch lecturer selections' });
     }
   }
+  async createSelection(req: Request, res: Response) {
+    try {
+      const { lecturerId, applicationId, rank, comments } = req.body;
+
+      // Validate lecturer exists
+      const lecturer = await this.userRepository.findOne({
+        where: { id: lecturerId, role: 'lecturer' }
+      });
+      if (!lecturer) {
+        return res.status(404).json({ error: 'Lecturer not found' });
+      }
+
+      // Validate application exists
+      const application = await this.applicationRepository.findOne({
+        where: { id: applicationId },
+        relations: ['user', 'course']
+      });
+      if (!application) {
+        return res.status(404).json({ error: 'Application not found' });
+      }
+
+      // Check if selection already exists
+      const existingSelection = await this.selectionRepository.findOne({
+        where: {
+          lecturer: { id: lecturerId },
+          application: { id: applicationId }
+        }
+      });
+
+      if (existingSelection) {
+        // Update existing selection
+        existingSelection.rank = rank;
+        existingSelection.comments = comments || '';
+
+        const updatedSelection = await this.selectionRepository.save(existingSelection);
+
+        const selectionWithRelations = await this.selectionRepository.findOne({
+          where: { id: updatedSelection.id },
+          relations: ['lecturer', 'application', 'application.user', 'application.course']
+        });
+
+        return res.json(selectionWithRelations);
+      }
+
+      // Create new selection
+      const selection = this.selectionRepository.create({
+        lecturer,
+        application,
+        rank,
+        comments: comments || ''
+      });
+
+      const savedSelection = await this.selectionRepository.save(selection);
+
+      const selectionWithRelations = await this.selectionRepository.findOne({
+        where: { id: savedSelection.id },
+        relations: ['lecturer', 'application', 'application.user', 'application.course']
+      });
+
+      res.status(201).json(selectionWithRelations);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create selection' });
+    }
+  }
+
+  // PUT /lecturer-selections/:id - Update selection
+  async updateSelection(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { rank, comments } = req.body;
+
+      const selection = await this.selectionRepository.findOne({
+        where: { id: parseInt(id) },
+        relations: ['lecturer', 'application', 'application.user', 'application.course']
+      });
+
+      if (!selection) {
+        return res.status(404).json({ error: 'Selection not found' });
+      }
+
+      if (rank !== undefined) selection.rank = rank;
+      if (comments !== undefined) selection.comments = comments;
+
+      const updatedSelection = await this.selectionRepository.save(selection);
+      res.json(updatedSelection);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update selection' });
+    }
+  }
+
+  // DELETE /lecturer-selections/:id - Delete selection
+  async deleteSelection(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const result = await this.selectionRepository.delete(parseInt(id));
+
+      if (result.affected === 0) {
+        return res.status(404).json({ error: 'Selection not found' });
+      }
+
+      res.json({ message: 'Selection deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete selection' });
+    }
+  }
+
+  // DELETE /lecturer-selections/lecturer/:lecturerId/application/:applicationId
+  async deleteSelectionByIds(req: Request, res: Response) {
+    try {
+      const { lecturerId, applicationId } = req.params;
+
+      const result = await this.selectionRepository.delete({
+        lecturer: { id: parseInt(lecturerId) },
+        application: { id: parseInt(applicationId) }
+      });
+
+      if (result.affected === 0) {
+        return res.status(404).json({ error: 'Selection not found' });
+      }
+
+      res.json({ message: 'Selection deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete selection' });
+    }
+  }
 }

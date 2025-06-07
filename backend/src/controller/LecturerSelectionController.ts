@@ -176,4 +176,31 @@ export class LecturerSelectionController {
       res.status(500).json({ error: 'Failed to delete selection' });
     }
   }
+  async reorderSelections(req: Request, res: Response) {
+    try {
+      const { lecturerId, selections } = req.body;
+
+      // selections should be an array of { selectionId, newRank }
+      for (const { selectionId, newRank } of selections) {
+        await this.selectionRepository.update(
+          {
+            id: selectionId,
+            lecturer: { id: lecturerId }
+          },
+          { rank: newRank }
+        );
+      }
+
+      // Return updated selections
+      const updatedSelections = await this.selectionRepository.find({
+        where: { lecturer: { id: lecturerId } },
+        relations: ['application', 'application.user', 'application.course'],
+        order: { rank: 'ASC' }
+      });
+
+      res.json(updatedSelections);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to reorder selections' });
+    }
+  }
 }

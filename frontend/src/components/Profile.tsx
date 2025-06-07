@@ -129,7 +129,82 @@ const Profile = () => {
   return (
     <Container maxW="container.lg" py={10}>
       <VStack spacing={8} align="stretch">
-        <Text color="white">Profile loaded successfully!</Text>
+        {/* Profile Header */}
+        <Card bg="gray.900" borderColor="set.700" borderWidth="1px">
+          <CardHeader>
+            <Heading as="h1" size="xl" color="white" textAlign="center">
+              User Profile
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={6}>
+              {/* Avatar and Basic Info */}
+              <VStack spacing={4}>
+                <Avatar
+                  size="2xl"
+                  name={userProfile.email.split('@')[0]}
+                  bg="set.500"
+                  color="white"
+                />
+                <VStack spacing={2}>
+                  <Heading as="h2" size="lg" color="white">
+                    {userProfile.email.split('@')[0]}
+                  </Heading>
+                  <Text color="gray.400" fontSize="lg">
+                    {userProfile.email}
+                  </Text>
+                  <Badge
+                    colorScheme={getRoleBadgeColor(userProfile.role)}
+                    fontSize="md"
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                  >
+                    {getRoleDisplayName(userProfile.role)}
+                  </Badge>
+                </VStack>
+              </VStack>
+              <Divider borderColor="gray.700" />
+              {/* Account Details */}
+              <VStack spacing={4} width="100%">
+                <Heading as="h3" size="md" color="white">
+                  Account Details
+                </Heading>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="100%">
+                  <Box>
+                    <Text color="gray.400" fontSize="sm">User ID</Text>
+                    <Text color="white" fontSize="lg" fontWeight="semibold">
+                      #{userProfile.id}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text color="gray.400" fontSize="sm">Date Joined</Text>
+                    <Text color="white" fontSize="lg" fontWeight="semibold">
+                      {formatDate(userProfile.createdAt)}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text color="gray.400" fontSize="sm">Account Type</Text>
+                    <Text color="white" fontSize="lg" fontWeight="semibold">
+                      {getRoleDisplayName(userProfile.role)}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text color="gray.400" fontSize="sm">Status</Text>
+                    <Badge colorScheme="green" fontSize="sm">
+                      Active
+                    </Badge>
+                  </Box>
+                </SimpleGrid>
+              </VStack>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        {/* Placeholder for application stats */}
+        <Text color="white">Application stats go here.</Text>
+        {/* Placeholder for role-specific info */}
+        <Text color="white">Role-specific instructions go here.</Text>
       </VStack>
     </Container>
   );

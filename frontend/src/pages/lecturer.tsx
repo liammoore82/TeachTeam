@@ -13,6 +13,10 @@ import StatisticsTab from '../components/lecturer/StatisticsTab';
 import ApplicationDetailsModal from '../components/lecturer/ApplicationDetailsModal';
 import EditCommentModal from '../components/lecturer/EditCommentModal';
 import { TutorApplication, SelectedCandidate } from '../types/tutor';
+import { applicationService } from '../services/applicationService';
+import { courseService, Course } from '../services/courseService';
+import { lecturerSelectionService } from '../services/lecturerSelectionService';
+import { userService } from '../services/userService';
 
 
 export const courseMap: {[key: string]: string} = {
@@ -37,6 +41,9 @@ const LecturerPage = () => {
   const [selectedCandidates, setSelectedCandidates] = useState<SelectedCandidate[]>([]);
   const [allLecturerSelections, setAllLecturerSelections] = useState<{[key: string]: SelectedCandidate[]}>({});
   const [statisticsLoaded, setStatisticsLoaded] = useState<boolean>(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Modal states for handling application details and comments
   const [selectedApplication, setSelectedApplication] = useState<TutorApplication | null>(null);
@@ -53,11 +60,6 @@ const LecturerPage = () => {
   const [sortBy, setSortBy] = useState<string>('timestamp');
   const [sortOrder, setSortOrder] = useState<string>('desc');
   
-  // Helper function to generate a unique localStorage key for user selections,
-  // ensures each lecturer's selections are stored separately
-  const getUserSelectionsKey = (): string => {
-    return 'selectedTutorCandidates_' + (userEmail || 'anonymous');
-  };
   
   
   useEffect(() => {
@@ -71,16 +73,15 @@ const LecturerPage = () => {
       return;
     }
     // Load applications data if authentication passes
-    loadTutorApplications();
+    loadDataFromAPI();
   }, [signedIn, userRole, router]); 
 
-  // Load selected candidates when userEmail or applications change
-  
+  // Load selected candidates when currentUser or applications change
   useEffect(() => {
-    if (userEmail) {
+    if (currentUser) {
       loadSelectedCandidates();
     }
-  }, [userEmail, allApplications]);
+  }, [currentUser, allApplications]);
   
   // Load statistics when component first mounts
   
@@ -182,160 +183,126 @@ const LecturerPage = () => {
     setFilteredApplications(result);
   };
 
-  // Load applications from localStorage
-  
-  const loadTutorApplications = (): void => {
-    const applications: TutorApplication[] = [];
-    
-    // Check localStorage for applications
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('tutorApplicationData')) {
-        try {
-          const applicationData = localStorage.getItem(key);
-          if (applicationData) {
-            // Parse stored JSON data
-            const parsedApplication = JSON.parse(applicationData);
-            let email = 'applicant@example.com';
-            
-            // Extract email from key name - handle new format with course and role
-            const keyParts = key.split('_');
-            if (keyParts.length >= 4) {
-              // New format: tutorApplicationData_COURSE_ROLE_EMAIL
-              email = keyParts[keyParts.length - 1];
-            } else if (key.includes('_')) {
-              // Old format: tutorApplicationData_EMAIL
-              email = key.substring(key.indexOf('_') + 1);
-            }
-            
-            // Create application object from stored data
-            const appObject: TutorApplication = {
-              id: key,
-              name: parsedApplication.name || email.split('@')[0].replace('.', ' '),
-              selectedCourse: parsedApplication.selectedCourse,
-              selectedRole: parsedApplication.selectedRole || 'tutor', // Default to tutor for backward compatibility
-              availability: parsedApplication.availability,
-              skills: parsedApplication.skills,
-              credentials: parsedApplication.credentials,
-              previousRoles: parsedApplication.previousRoles,
-              email: email,
-              timestamp: parsedApplication.timestamp || new Date().toISOString()
-            };
-            
-            applications.push(appObject);
-          }
-        } catch (error) {
-          console.error('Error parsing stored application:', error);
-        }
-      }
+  // Load data from API
+  const loadDataFromAPI = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      
+      // Load courses, applications, and current user concurrently
+      const [coursesData, applicationsData, userData] = await Promise.all([
+        courseService.getAllCourses(),
+        applicationService.getAllApplications(),
+        userService.getCurrentUser(userEmail!)
+      ]);
+      
+      setCourses(coursesData);
+      setAllApplications(applicationsData);
+      setFilteredApplications(applicationsData);
+      setCurrentUser(userData);
+      
+      // Create course map from API data
+      const dynamicCourseMap: {[key: string]: string} = {};
+      coursesData.forEach(course => {
+        dynamicCourseMap[course.code] = course.title;
+      });
+      
+      // Update the global courseMap if needed
+      Object.assign(courseMap, dynamicCourseMap);
+      
+    } catch (error) {
+      console.error('Error loading data from API:', error);
+      toast({
+        title: 'Error Loading Data',
+        description: 'Failed to load applications. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      // Fallback to mock data if API fails
+      loadMockData();
+    } finally {
+      setLoading(false);
     }
-    
-    // Add mock data if no applications found
-    
-    if (applications.length === 0) {
-      applications.push(
-        {
-          id: 'mock_john.doe@example.com_tutor',
-          name: 'John Doe',
-          selectedCourse: 'COSC1822',
-          selectedRole: 'tutor',
-          availability: 'part-time',
-          skills: 'JavaScript, React, Node.js, Express, MongoDB',
-          credentials: 'Bachelor of Computer Science, RMIT University',
-          previousRoles: 'Lab demonstrator for Programming 1',
-          email: 'john.doe@example.com',
-          timestamp: '2025-03-15T10:30:00Z'
-        },
-        {
-          id: 'mock_jane.smith@example.com_lab-assistant',
-          name: 'Jane Smith',
-          selectedCourse: 'COSC3945',
-          selectedRole: 'lab-assistant',
-          availability: 'full-time',
-          skills: 'Java, Spring Boot, SQL, Git, Docker',
-          credentials: 'Master of Software Engineering, University of Melbourne',
-          previousRoles: '',
-          email: 'jane.smith@example.com',
-          timestamp: '2025-03-18T14:20:00Z'
-        },
-        {
-          id: 'mock_alex.brown@example.com_tutor',
-          name: 'Alex Brown',
-          selectedCourse: 'COSC8288',
-          selectedRole: 'tutor',
-          availability: 'part-time',
-          skills: 'Python, Django, REST APIs, PostgreSQL',
-          credentials: 'Bachelor of Information Technology, Monash University',
-          previousRoles: 'Tutor for Introduction to Programming',
-          email: 'alex.brown@example.com',
-          timestamp: '2025-03-20T09:15:00Z'
-        }
-      );
-    }
-    
-    // Sort applications by timestamp (newest first)
-    applications.sort((a, b) => {
-      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-      return timeB - timeA;
-    });
-    
-    // Update state with loaded applications
-    setAllApplications(applications);
-    setFilteredApplications(applications);
   };
 
-  // Load statistics for all lecturer selections
-  
-  const loadAllLecturerSelections = (): void => {
-    const selections: {[key: string]: SelectedCandidate[]} = {};
-    
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('selectedTutorCandidates_')) {
-        try {
-          const savedCandidates = localStorage.getItem(key);
-          if (savedCandidates) {
-            selections[key] = JSON.parse(savedCandidates);
-          }
-        } catch (error) {
-          console.error('Error loading selections for statistics:', error);
-        }
+  // Fallback mock data
+  const loadMockData = (): void => {
+    const mockApplications: TutorApplication[] = [
+      {
+        id: 'mock_john.doe@example.com_tutor',
+        name: 'John Doe',
+        selectedCourse: 'COSC1822',
+        selectedRole: 'tutor',
+        availability: 'part-time',
+        skills: 'JavaScript, React, Node.js, Express, MongoDB',
+        credentials: 'Bachelor of Computer Science, RMIT University',
+        previousRoles: 'Lab demonstrator for Programming 1',
+        email: 'john.doe@example.com',
+        timestamp: '2025-03-15T10:30:00Z',
+        status: 'pending'
+      },
+      {
+        id: 'mock_jane.smith@example.com_lab-assistant',
+        name: 'Jane Smith',
+        selectedCourse: 'COSC3945',
+        selectedRole: 'lab-assistant',
+        availability: 'full-time',
+        skills: 'Java, Spring Boot, SQL, Git, Docker',
+        credentials: 'Master of Software Engineering, University of Melbourne',
+        previousRoles: '',
+        email: 'jane.smith@example.com',
+        timestamp: '2025-03-18T14:20:00Z',
+        status: 'approved'
+      },
+      {
+        id: 'mock_alex.brown@example.com_tutor',
+        name: 'Alex Brown',
+        selectedCourse: 'COSC8288',
+        selectedRole: 'tutor',
+        availability: 'part-time',
+        skills: 'Python, Django, REST APIs, PostgreSQL',
+        credentials: 'Bachelor of Information Technology, Monash University',
+        previousRoles: 'Tutor for Introduction to Programming',
+        email: 'alex.brown@example.com',
+        timestamp: '2025-03-20T09:15:00Z',
+        status: 'pending'
       }
-    }
+    ];
     
-    
-    setAllLecturerSelections(selections);
+    setAllApplications(mockApplications);
+    setFilteredApplications(mockApplications);
+  };
+
+  // Load statistics for all lecturer selections (removed localStorage dependency)
+  const loadAllLecturerSelections = (): void => {
+    // For now, just use empty selections since we're removing localStorage dependencies
+    // In the future, this could be replaced with an API call to get lecturer selections
+    setAllLecturerSelections({});
     setStatisticsLoaded(true);
   };
 
-  // Load previously selected candidates from localStorage
-  
-  const loadSelectedCandidates = (): void => {
-    // Get the localStorage key for the current user
-    const storageKey = getUserSelectionsKey();
-    const savedCandidates = localStorage.getItem(storageKey);
-    
-    if (savedCandidates) {
+  // Load selected candidates from API
+  const loadSelectedCandidates = async (): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      const selections = await lecturerSelectionService.getSelectionsByLecturer(currentUser.id);
       
-        const parsed = JSON.parse(savedCandidates);
-        
-        
-        const updatedCandidates = parsed.map((candidate: SelectedCandidate) => {
-          if (candidate.name) return candidate;
-          
-          
-          const application = allApplications.find(app => app.id === candidate.applicationId);
-          return {
-            ...candidate,
-            name: application ? application.name : 'Unknown'
-          };
-        });
-        
-        setSelectedCandidates(updatedCandidates);
-       
-    } else {
+      // Transform API selections to SelectedCandidate format
+      const candidates: SelectedCandidate[] = selections.map(selection => ({
+        applicationId: selection.application.id.toString(),
+        name: selection.application.fullName,
+        email: selection.application.user.email,
+        course: selection.application.course.code,
+        role: (selection.application.course as any).roleType === 'Tutor' ? 'tutor' : 'lab-assistant',
+        rank: selection.rank,
+        comments: selection.comments || ''
+      }));
+
+      setSelectedCandidates(candidates);
+    } catch (error) {
+      console.error('Error loading selected candidates:', error);
       setSelectedCandidates([]);
     }
   };
@@ -356,85 +323,91 @@ const LecturerPage = () => {
   };
 
   // Handler for selecting a candidate
-  
-  const selectCandidate = (): void => {
-    if (!selectedApplication) return;
+  const selectCandidate = async (): Promise<void> => {
+    if (!selectedApplication || !currentUser) return;
     
-    // Check if candidate already exists
-    const existingIndex = selectedCandidates.findIndex(
-      c => c.applicationId === selectedApplication.id
-    );
-    
-    // Create the candidate object
-    const newCandidate: SelectedCandidate = {
-      applicationId: selectedApplication.id,
-      name: selectedApplication.name,
-      email: selectedApplication.email,
-      course: selectedApplication.selectedCourse,
-      role: selectedApplication.selectedRole, // Include role in selected candidate
-      rank: existingIndex >= 0 ? selectedCandidates[existingIndex].rank : selectedCandidates.length + 1,
-      comments: candidateComment
-    };
-    
-    // Update the selected candidates list
-    
-    let updatedCandidates: SelectedCandidate[];
-    if (existingIndex >= 0) {
-      updatedCandidates = [...selectedCandidates];
-      updatedCandidates[existingIndex] = newCandidate;
-    } else {
-      updatedCandidates = [...selectedCandidates, newCandidate];
+    try {
+      // Check if candidate already exists
+      const existingIndex = selectedCandidates.findIndex(
+        c => c.applicationId === selectedApplication.id
+      );
+      
+      const rank = existingIndex >= 0 ? selectedCandidates[existingIndex].rank : selectedCandidates.length + 1;
+      
+      // Save selection to API
+      await lecturerSelectionService.createSelection({
+        lecturerId: currentUser.id,
+        applicationId: parseInt(selectedApplication.id),
+        rank,
+        comments: candidateComment
+      });
+
+      // Reload selected candidates from API
+      await loadSelectedCandidates();
+      
+      loadAllLecturerSelections();
+      
+      toast({
+        title: existingIndex >= 0 ? 'Candidate Updated' : 'Candidate Selected',
+        description: `${selectedApplication.name} has been ${existingIndex >= 0 ? 'updated' : 'added to selected candidates'}.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Close the modal
+      setIsModalOpen(false);
+      
+    } catch (error) {
+      console.error('Error selecting candidate:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to select candidate. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
     }
-    
-    
-    setSelectedCandidates(updatedCandidates);
-    localStorage.setItem(getUserSelectionsKey(), JSON.stringify(updatedCandidates));
-    
-    
-    loadAllLecturerSelections();
-    
-    
-    toast({
-      title: existingIndex >= 0 ? 'Candidate Updated' : 'Candidate Selected',
-      description: `${selectedApplication.name} has been ${existingIndex >= 0 ? 'updated' : 'added to selected candidates'}.`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    // Close the modal
-    setIsModalOpen(false);
   };
 
   // Handler for removing a candidate
-  
-  const removeCandidate = (applicationId: string): void => {
-    // Filter out the candidate to remove and re-rank remaining candidates
-    const updatedCandidates = selectedCandidates
-      .filter(candidate => candidate.applicationId !== applicationId)
-      .sort((a, b) => a.rank - b.rank)
-      .map((candidate, index) => ({...candidate, rank: index + 1}));
-    
-    // Update state and save to localStorage
-    setSelectedCandidates(updatedCandidates);
-    localStorage.setItem(getUserSelectionsKey(), JSON.stringify(updatedCandidates));
-    
-    // Refresh statistics after removal
-    loadAllLecturerSelections();
-    
-    
-    toast({
-      title: 'Candidate Removed',
-      description: 'The candidate has been removed from your selection.',
-      status: 'info',
-      duration: 3000,
-      isClosable: true,
-    });
+  const removeCandidate = async (applicationId: string): Promise<void> => {
+    if (!currentUser) return;
+
+    try {
+      // Remove selection via API
+      await lecturerSelectionService.deleteSelectionByIds(currentUser.id, parseInt(applicationId));
+      
+      // Reload selected candidates from API
+      await loadSelectedCandidates();
+      
+      // Refresh statistics after removal
+      loadAllLecturerSelections();
+      
+      toast({
+        title: 'Candidate Removed',
+        description: 'The candidate has been removed from your selection.',
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+    } catch (error) {
+      console.error('Error removing candidate:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove candidate. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   // Handler for changing candidate rank order
-  
-  const moveRank = (applicationId: string, direction: 'up' | 'down'): void => {
+  const moveRank = async (applicationId: string, direction: 'up' | 'down'): Promise<void> => {
+    if (!currentUser) return;
+
     const candidateIndex = selectedCandidates.findIndex(c => c.applicationId === applicationId);
     if (candidateIndex === -1) return;
     
@@ -448,53 +421,76 @@ const LecturerPage = () => {
     
     // Find the candidate to swap with
     const newRank = direction === 'up' ? candidate.rank - 1 : candidate.rank + 1;
-    const otherCandidateIndex = selectedCandidates.findIndex(c => c.rank === newRank);
+    const otherCandidate = selectedCandidates.find(c => c.rank === newRank);
     
-    if (otherCandidateIndex === -1) return;
+    if (!otherCandidate) return;
     
-    
-    const updatedCandidates = [...selectedCandidates];
-    updatedCandidates[candidateIndex] = { ...candidate, rank: newRank };
-    updatedCandidates[otherCandidateIndex] = { 
-      ...updatedCandidates[otherCandidateIndex], 
-      rank: candidate.rank 
-    };
-    
-    // Sort by rank
-    updatedCandidates.sort((a, b) => a.rank - b.rank);
-    
-    // Update state and save to localStorage
-    setSelectedCandidates(updatedCandidates);
-    localStorage.setItem(getUserSelectionsKey(), JSON.stringify(updatedCandidates));
+    try {
+      // Create reorder request
+      const reorderData = [
+        { selectionId: parseInt(applicationId), newRank },
+        { selectionId: parseInt(otherCandidate.applicationId), newRank: candidate.rank }
+      ];
+      
+      // Update ranks via API
+      await lecturerSelectionService.reorderSelections({
+        lecturerId: currentUser.id,
+        selections: reorderData
+      });
+      
+      // Reload selected candidates from API
+      await loadSelectedCandidates();
+      
+    } catch (error) {
+      console.error('Error reordering candidates:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reorder candidates. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   // Handler for saving candidate comments
-  
-  const saveComment = (): void => {
-    if (!editingCandidate) return;
+  const saveComment = async (): Promise<void> => {
+    if (!editingCandidate || !currentUser) return;
     
-    // Update comment for the candidate
-    
-    const updatedCandidates = selectedCandidates.map(candidate => 
-      candidate.applicationId === editingCandidate.applicationId
-        ? { ...candidate, comments: editingCandidate.comments }
-        : candidate
-    );
-    
-    // Update state and save to localStorage
-    setSelectedCandidates(updatedCandidates);
-    localStorage.setItem(getUserSelectionsKey(), JSON.stringify(updatedCandidates));
-    
-    
-    setEditingCandidate(null);
-    
-    
-    toast({
-      title: 'Comment Saved',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
+    try {
+      // Find the selection in the API
+      const selections = await lecturerSelectionService.getSelectionsByLecturer(currentUser.id);
+      const selection = selections.find(s => s.application.id.toString() === editingCandidate.applicationId);
+      
+      if (selection) {
+        // Update comment via API
+        await lecturerSelectionService.updateSelection(selection.id, {
+          comments: editingCandidate.comments
+        });
+        
+        // Reload selected candidates from API
+        await loadSelectedCandidates();
+      }
+      
+      setEditingCandidate(null);
+      
+      toast({
+        title: 'Comment Saved',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+      
+    } catch (error) {
+      console.error('Error saving comment:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save comment. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Button, Input, FormControl, FormErrorMessage, VStack, Heading, Container, Text, Center, Select } from "@chakra-ui/react";
+import { Box, Button, Input, FormControl, FormErrorMessage, Alert, AlertIcon, VStack, Heading, Container, Text, Center, Select } from "@chakra-ui/react";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useRouter } from "next/router";
@@ -24,7 +24,7 @@ interface FormErrors {
 
 const SignUp = () => {
   // Get login function from authentication context (Placeholder for now)
-  // const { login } = useAuth(); 
+  // const { login } = useAuth();
 
   // To redirect after signup
   const router = useRouter();
@@ -37,7 +37,7 @@ const SignUp = () => {
     role: "candidate"
   });
 
-  // Track validation errors (Placeholder for now)
+  // Track validation errors
   const [errors, setErrors] = useState<FormErrors>({});
 
   // Flag successful signup (Placeholder for now)
@@ -49,23 +49,78 @@ const SignUp = () => {
   // Loading state (Placeholder for now)
   const [isLoading, setIsLoading] = useState(false);
 
-  // Placeholder for input change handler
+  // Handle changes to input fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // For email field, automatically trim whitespace
+    const cleanedValue = name === 'email' ? value.trim() : value;
+
+    // Update form with new value
     setFormState((prev) => ({
       ...prev,
-      [name]: value
+      [name]: cleanedValue
     }));
+
+    // Clear errors when user starts typing
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+
+    // Clear general error when user starts typing again (if it exists)
+    if (generalError) {
+      setGeneralError(null);
+    }
   };
 
-  // Placeholder for form validation
+  // Validate form inputs before submission
   const validateForm = (): boolean => {
-    return true; // Always valid for now
+    const newErrors: FormErrors = {};
+
+    // Check if email is provided and has valid format
+    if (!formState.email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    // Check if password meets requirements
+    if (!formState.password) {
+      newErrors.password = "Password is required";
+    } else if (formState.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    // Check if passwords match
+    if (!formState.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formState.password !== formState.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Check if role is selected
+    if (!formState.role) {
+      newErrors.role = "Please select a role";
+    }
+
+    // Update errors state
+    setErrors(newErrors);
+
+    // If no errors found, return true
+    return Object.keys(newErrors).length === 0;
   };
 
   // Placeholder for form submission
   const handleSubmit = async () => {
-    console.log("Form submitted (placeholder)");
+    if (validateForm()) { // Only proceed if validation passes
+      console.log("Form is valid, ready to submit (placeholder)");
+      // ... (actual submission logic will go here in next commit)
+    } else {
+      console.log("Form has validation errors.");
+    }
   };
 
   // Render the SignUp component UI
@@ -93,9 +148,21 @@ const SignUp = () => {
             </Center>
 
             <VStack spacing={6} align="stretch">
-              {/* Alerts placeholders */}
-              {/* {isSuccess && (<Alert status="success">...</Alert>)} */}
-              {/* {generalError && (<Alert status="error">...</Alert>)} */}
+              {/* Alert for successful signup (still placeholder) */}
+              {isSuccess && (
+                <Alert status="success" borderRadius="md" bg="set.700" color="white">
+                  <AlertIcon />
+                  Welcome {formState.email.split('@')[0]}! Account created successfully! Redirecting...
+                </Alert>
+              )}
+
+              {/* General error message (still placeholder) */}
+              {generalError && (
+                <Alert status="error" borderRadius="md">
+                  <AlertIcon />
+                  {generalError}
+                </Alert>
+              )}
 
               {/* Email input field */}
               <FormControl isInvalid={!!errors.email}>
@@ -105,6 +172,31 @@ const SignUp = () => {
                   placeholder="Enter your email"
                   value={formState.email}
                   onChange={handleInputChange}
+                  onKeyDown={(e) => {
+                    // Prevent spacebar input when field is empty
+                    if (e.key === " " && formState.email === "") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // Clean pasted email addresses
+                    const pastedText = e.clipboardData.getData('text');
+                    e.preventDefault();
+
+                    const trimmedText = pastedText.trim();
+                    setFormState(prev => ({
+                      ...prev,
+                      email: trimmedText
+                    }));
+
+                    // Clear any existing errors
+                    if (errors.email) {
+                      setErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                    if (generalError) {
+                      setGeneralError(null);
+                    }
+                  }}
                   bg="gray.800"
                   borderColor="set.700"
                   _hover={{ borderColor: "set.600" }}

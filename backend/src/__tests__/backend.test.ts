@@ -122,4 +122,117 @@ describe('Backend Controllers', () => {
     // Verify: Check that the saved user data was returned in response
     expect(mockResponse.json).toHaveBeenCalledWith(savedUser);
   });
+
+  // Test 3: Course search and filtering - tests the course discovery functionality
+  // This is essential for users to find relevant courses to apply for
+  it('should fetch courses with search and filter functionality in CourseController', async () => {
+    // Setup: Create CourseController and mock course data
+    const courseController = new CourseController();
+    const mockCourses = [
+      {
+        id: 1,
+        code: 'COMP1234',
+        title: 'Introduction to Programming',
+        roleType: 'tutor',
+        applications: [],
+        lecturerCourses: []
+      },
+      {
+        id: 2,
+        code: 'COMP5678',
+        title: 'Advanced Algorithms',
+        roleType: 'lecturer',
+        applications: [],
+        lecturerCourses: []
+      }
+    ];
+
+    // Simulate a search request with text search and role type filter
+    mockRequest.query = {
+      search: 'COMP',          // Search for courses containing "COMP"
+      roleType: 'tutor'       // Filter for tutor positions only
+    };
+
+    // Mock database response
+    mockRepository.find.mockResolvedValue(mockCourses);
+
+    // Execute: Call the getAllCourses method
+    await courseController.getAllCourses(mockRequest as Request, mockResponse as Response);
+
+    // Verify: Check that the database query includes proper search conditions
+    // Should search both course code and title fields with the search term
+    expect(mockRepository.find).toHaveBeenCalledWith({
+      where: expect.arrayContaining([
+        expect.objectContaining({ code: expect.any(Object), roleType: 'tutor' }),
+        expect.objectContaining({ title: expect.any(Object), roleType: 'tutor' })
+      ]),
+      relations: ['applications', 'lecturerCourses']  // Include related data
+    });
+
+    // Verify: Check that filtered courses are returned
+    expect(mockResponse.json).toHaveBeenCalledWith(mockCourses);
+  });
+
+  // Test 4: Application creation with business logic validation
+  // This tests the core application submission process with duplicate prevention
+  it('should create application with validation and duplicate checking in ApplicationController', async () => {
+    // Setup: Create ApplicationController and mock related entities
+    const applicationController = new ApplicationController();
+    const mockUser = { id: 1, email: 'user@example.com', role: 'candidate' };
+    const mockCourse = { id: 1, code: 'COMP1234', title: 'Programming', roleType: 'tutor' };
+
+    // Complete application data as would be submitted by a candidate
+    const applicationData = {
+      fullName: 'John Doe',
+      courseId: 1,
+      availability: 'Mon-Fri 9-5',
+      skills: 'JavaScript, Python',
+      credentials: 'BSc Computer Science',
+      previousRoles: 'Teaching Assistant',
+      userId: 1
+    };
+
+    const savedApplication = {
+      id: 1,
+      ...applicationData,
+      user: mockUser,
+      course: mockCourse,
+      status: 'pending'
+    };
+
+    // Simulate application submission request
+    mockRequest.body = applicationData;
+
+    // Mock sequential database calls that the controller makes:
+    mockRepository.findOne
+      .mockResolvedValueOnce(mockUser)      // 1. Verify user exists
+      .mockResolvedValueOnce(mockCourse)      // 2. Verify course exists
+      .mockResolvedValueOnce(null)           // 3. Check no duplicate application exists
+      .mockResolvedValueOnce(savedApplication); // 4. Fetch saved application with relations
+
+    mockRepository.create.mockReturnValue(savedApplication);
+    mockRepository.save.mockResolvedValue(savedApplication);
+
+    // Mock the Application entity validation method
+    const mockValidate = jest.fn().mockReturnValue(true);
+    require('../entity/Application').Application = { validate: mockValidate };
+
+    // Execute: Call the createApplication method
+    await applicationController.createApplication(mockRequest as Request, mockResponse as Response);
+
+    // Verify: Check that user existence was validated
+    expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } }); // User lookup
+
+    // Verify: Check that course existence was validated
+    expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } }); // Course lookup
+
+    // Verify: Check that application was saved to database
+    expect(mockRepository.save).toHaveBeenCalled();
+
+    // Verify: Check that HTTP 201 status was returned (created)
+    expect(mockResponse.status).toHaveBeenCalledWith(201);
+
+    // Verify: Check that complete application data was returned
+    expect(mockResponse.json).toHaveBeenCalledWith(savedApplication);
+  });
 });

@@ -5,6 +5,10 @@ import {
   ListItem, ListIcon, Center,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+} from 'recharts';
+
 import { TutorApplication, SelectedCandidate } from '../../types/tutor';
 
 type StatisticsTabProps = {
@@ -14,7 +18,6 @@ type StatisticsTabProps = {
   statisticsLoaded: boolean;
   courseMap: { [key: string]: string };
 };
-
 
 type SelectionCount = {
   count: number;
@@ -80,7 +83,7 @@ const StatisticsTab = ({
     // find the most chosen applications
     let mostChosenCount = 0;
     let mostChosen: (TutorApplication | null)[] = [];
-    
+
     if (selectedApplications.length > 0) {
       mostChosenCount = selectedApplications[0][1].count;
       mostChosen = selectedApplications
@@ -91,7 +94,7 @@ const StatisticsTab = ({
     // find the least chosen applications
     let leastChosenCount = 0;
     let leastChosen: (TutorApplication | null)[] = [];
-    
+
     if (selectedApplications.length > 0) {
       leastChosenCount = selectedApplications[selectedApplications.length - 1][1].count;
       leastChosen = selectedApplications
@@ -108,7 +111,6 @@ const StatisticsTab = ({
     Object.values(allLecturerSelections).forEach((selections) => {
       selections.forEach((s) => uniqueIds.add(s.applicationId));
     });
-    const totalSelections = uniqueIds.size;
 
     // update state with calculated statistics
     setStatistics({
@@ -117,51 +119,46 @@ const StatisticsTab = ({
       leastChosen,
       leastChosenCount,
       notSelected,
-      totalSelections,
+      totalSelections: uniqueIds.size,
       selectionCounts,
     });
-  }, [allApplications, allLecturerSelections, statisticsLoaded]); 
+  }, [allApplications, allLecturerSelections, statisticsLoaded]);
 
   // If statistics aren't loaded yet, show loading message
   if (!statisticsLoaded) {
     return (
-      <Box
-        bg="gray.900"
-        p={6}
-        rounded="md"
-        shadow="lg"
-        color="white"
-        borderColor="set.700"
-        borderWidth="1px"
-        mb={10}
-      >
+      <Box bg="gray.900" p={6} rounded="md" shadow="lg" color="white" borderColor="set.700" borderWidth="1px" mb={10}>
         <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
         <Center p={10}><Text>Loading statistics...</Text></Center>
       </Box>
     );
   }
-
   
-  const { 
-    mostChosen, 
-    mostChosenCount, 
-    leastChosen, 
-    leastChosenCount, 
-    notSelected, 
-    totalSelections 
+
+  const {
+    mostChosen,
+    mostChosenCount,
+    leastChosen,
+    leastChosenCount,
+    notSelected,
+    totalSelections,
+    selectionCounts,
   } = statistics;
 
+  const barChartData = Object.values(selectionCounts).map(({ application, count }) => ({
+    name: application?.name || 'Unknown',
+    count,
+  }));
+
+  const pieData = [
+    { name: 'Selected', value: allApplications.length - notSelected.length },
+    { name: 'Unselected', value: notSelected.length },
+  ];
+
+  const pieColors = ['#48BB78', '#F56565'];
+
   return (
-    <Box
-      bg="gray.900"
-      p={6}
-      rounded="md"
-      shadow="lg"
-      color="white"
-      borderColor="set.700"
-      borderWidth="1px"
-      mb={10}
-    >
+    <Box bg="gray.900" p={6} rounded="md" shadow="lg" color="white" borderColor="set.700" borderWidth="1px" mb={10}>
       <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
 
       <VStack spacing={8} align="stretch">
@@ -186,15 +183,48 @@ const StatisticsTab = ({
           </Stat>
         </StatGroup>
 
+        {/* Charts */}
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-          {/* Most Chosen */}
+          <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
+            <CardBody>
+              <Heading size="md" mb={4} color="cyan.300">Selection Count by Applicant</Heading>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={barChartData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#38B2AC" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardBody>
+          </Card>
+
+          <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
+            <CardBody>
+              <Heading size="md" mb={4} color="pink.300">Selected vs Unselected Applicants</Heading>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={pieColors[index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {/* Lists for Most/Least/Unselected */}
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
           <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
             <CardBody>
               <Heading size="md" mb={3} color="green.400">
                 Most Selected Applicants
                 {mostChosenCount > 0 && <Badge ml={2} colorScheme="green">{mostChosenCount} selections</Badge>}
               </Heading>
-
               {mostChosen.length === 0 ? (
                 <Text color="gray.400">No selections have been made yet.</Text>
               ) : (
@@ -219,14 +249,12 @@ const StatisticsTab = ({
             </CardBody>
           </Card>
 
-          {/* Least Chosen */}
           <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
             <CardBody>
               <Heading size="md" mb={3} color="yellow.400">
                 Least Selected Applicants
                 {leastChosenCount > 0 && <Badge ml={2} colorScheme="yellow">{leastChosenCount} selection(s)</Badge>}
               </Heading>
-
               {leastChosen.length === 0 ? (
                 <Text color="gray.400">No selections have been made yet.</Text>
               ) : (
@@ -252,13 +280,11 @@ const StatisticsTab = ({
           </Card>
         </SimpleGrid>
 
-        {/* Not Selected */}
         <Card bg="gray.800" borderWidth="1px" borderColor="set.700">
           <CardBody>
             <Heading size="md" mb={3} color="red.400">
               Applicants Not Selected by Any Lecturer
             </Heading>
-
             {notSelected.length === 0 ? (
               <Text color="gray.400">All applicants have been selected by at least one lecturer.</Text>
             ) : (

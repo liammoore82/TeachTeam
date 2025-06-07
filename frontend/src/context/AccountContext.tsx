@@ -5,6 +5,7 @@ interface AccountContextType {
   signedIn: boolean;
   userEmail: string | null;
   userRole: string | null;
+  isLoading: boolean;
   login: (token: string, role: string) => void;
   logout: () => void;
 }
@@ -15,6 +16,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
   const [signedIn, setSignedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Helper function to extract email from token
   const extractEmailFromToken = (token: string): string | null => {
@@ -33,6 +35,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
       setUserEmail(extractEmailFromToken(token));
       setUserRole(role);
     }
+    setIsLoading(false);
   }, []);
 
   const login = (token: string, role: string) => {
@@ -52,7 +55,7 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AccountContext.Provider value={{ signedIn, userEmail, userRole, login, logout }}>
+    <AccountContext.Provider value={{ signedIn, userEmail, userRole, isLoading, login, logout }}>
       {children}
     </AccountContext.Provider>
   );

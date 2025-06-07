@@ -4,6 +4,8 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useRouter } from "next/router";
 import { useAuth } from "../context/AccountContext";
+import { userService } from "../services/userService";
+import { courseService } from "../services/courseService";
 
 // Creating form interface
 interface FormState {
@@ -17,12 +19,6 @@ interface FormErrors {
   password?: string;
 }
 
-// Define user interface to include role
-interface User {
-  email: string;
-  password: string;
-  role: string;
-}
 
 const SignIn = () => {
   // Get login function from authentication
@@ -46,34 +42,82 @@ const SignIn = () => {
   // General error message
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  // Create dummy users with roles using loops
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Create sample users and courses in database on component mount
   useEffect(() => {
-    
-    const dummyUsers: User[] = [
-      { email: "tutor@example.com", password: "Password123!", role: "tutor" },
-      { email: "lecturer@example.com", password: "Password123!", role: "lecturer" },
-    ];
-
-    // Generate 10 additional tutors using a loop
-    for (let i = 1; i <= 10; i++) {
-      dummyUsers.push({
-        email: `tutor${i}@example.com`,
-        password: "Password123!",
-        role: "tutor"
-      });
-    }
-
-    // Generate 10 additional lecturers using a loop
-    for (let i = 1; i <= 10; i++) {
-      dummyUsers.push({
-        email: `lecturer${i}@example.com`,
-        password: "Password123!",
-        role: "lecturer"
-      });
-    }
-
-    localStorage.setItem("dummyUsers", JSON.stringify(dummyUsers));
+    createSampleDataInDatabase();
   }, []);
+
+  const createSampleDataInDatabase = async () => {
+    await createSampleUsersInDatabase();
+    await createSampleCoursesInDatabase();
+  };
+
+  const createSampleUsersInDatabase = async () => {
+    try {
+      // Sample users to create
+      const sampleUsers: Array<{email: string, password: string, role: 'candidate' | 'lecturer' | 'admin'}> = [
+        { email: "tutor@example.com", password: "Password123!", role: "candidate" },
+        { email: "lecturer@example.com", password: "Password123!", role: "lecturer" },
+      ];
+
+      // Generate additional sample users
+      for (let i = 1; i <= 3; i++) {
+        sampleUsers.push({
+          email: `tutor${i}@example.com`,
+          password: "Password123!",
+          role: "candidate"
+        });
+      }
+
+      for (let i = 1; i <= 3; i++) {
+        sampleUsers.push({
+          email: `lecturer${i}@example.com`,
+          password: "Password123!",
+          role: "lecturer"
+        });
+      }
+
+      // Try to create each user (ignore if they already exist)
+      for (const userData of sampleUsers) {
+        try {
+          await userService.createUser(userData);
+        } catch (error) {
+          // User probably already exists, continue with next one
+          console.log(`User ${userData.email} may already exist`);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating sample users:', error);
+    }
+  };
+
+  const createSampleCoursesInDatabase = async () => {
+    try {
+      // Sample courses to create
+      const sampleCourses = [
+        { code: "COSC1822", title: "Full Stack Development", roleType: "Tutor" as const },
+        { code: "COSC8288", title: "Programming Studio 2", roleType: "Tutor" as const },
+        { code: "COSC3945", title: "Software Engineering Fundamentals", roleType: "Lab Assistant" as const },
+        { code: "COSC5324", title: "Programming Bootcamp 2", roleType: "Tutor" as const },
+      ];
+
+      // Try to create each course (ignore if they already exist)
+      for (const courseData of sampleCourses) {
+        try {
+          await courseService.createCourse(courseData);
+          console.log(`Created course: ${courseData.code}`);
+        } catch (error) {
+          // Course probably already exists, continue with next one
+          console.log(`Course ${courseData.code} may already exist`);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating sample courses:', error);
+    }
+  };
 
   // Handle changes to input fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,49 +172,48 @@ const SignIn = () => {
   };
 
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
+      setIsLoading(true);
+      setGeneralError(null);
+      
       try {
-        setGeneralError(null);
-        
-        // Get stored users from localStorage
-        const dummyUsers: User[] = JSON.parse(localStorage.getItem("dummyUsers") || "[]");
-        
-        
-        const cleanEmail = formState.email;
+        // Authenticate user through API
+        const response = await userService.signIn({
+          email: formState.email,
+          password: formState.password
+        });
 
-        // Check if provided credentials match any user
-        const user = dummyUsers.find(
-          (user: User) =>
-            user.email === cleanEmail &&
-            user.password === formState.password
-        );
+        // Login successful
+        setIsSuccess(true);
 
-        if (user) {
-          // Login successful
-          setIsSuccess(true);
+        // Call login function from authentication with role
+        login(`token_${response.user.email}`, response.user.role);
 
-          // Call login function from authentication with role
-          login(`token_${cleanEmail}`, user.role);
+        // Redirect based on user role after a short delay
+        setTimeout(() => {
+          if (response.user.role === "lecturer") {
+            router.push("/lecturer");
+          } else if (response.user.role === "candidate") {
+            router.push("/tutor");
+          } else if (response.user.role === "admin") {
+            router.push("/admin");
+          } else {
+            // Fallback to home page
+            router.push("/");
+          }
+        }, 1500);
 
-          // Redirect based on user role after a short delay
-          setTimeout(() => {
-            if (user.role === "lecturer") {
-              router.push("/lecturer");
-            } else if (user.role === "tutor") {
-              router.push("/tutor");
-            } else {
-              // Fallback to home page
-              router.push("/");
-            }
-          }, 1500);
-        } else {
-          // Login failed, show general error
-          setGeneralError("Invalid email or password");
-        }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Login error:", error);
-        setGeneralError("An error occurred during login. Please try again.");
+        
+        if (error.response?.status === 401) {
+          setGeneralError("Invalid email or password");
+        } else {
+          setGeneralError("An error occurred during login. Please try again.");
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -204,7 +247,7 @@ const SignIn = () => {
               {isSuccess && (
                 <Alert status="success" borderRadius="md" bg="set.700" color="white">
                   <AlertIcon />
-                  Login successful! Redirecting...
+                  Welcome {formState.email.split('@')[0]}! Redirecting...
                 </Alert>
               )}
 
@@ -283,7 +326,9 @@ const SignIn = () => {
                   color="white"
                   _hover={{ bg: "set.400" }}
                   onClick={handleSubmit}
-                  isDisabled={isSuccess}
+                  isDisabled={isSuccess || isLoading}
+                  isLoading={isLoading}
+                  loadingText="Signing In..."
                   w="100%"
                   py={6}
                 >
@@ -293,9 +338,22 @@ const SignIn = () => {
 
               <Text fontSize="xs" color="gray.500" textAlign="center">
                 Sample logins:<br />
-                Tutor: tutor@example.com / Password123!<br />
+                Candidate: tutor@example.com / Password123!<br />
                 Lecturer: lecturer@example.com / Password123!<br />
-                (Plus 10 more of each: tutor1-10@example.com, lecturer1-10@example.com)
+                (Plus 3 more of each: tutor1-3@example.com, lecturer1-3@example.com)
+              </Text>
+
+              <Text fontSize="sm" color="gray.400" textAlign="center">
+                Don't have an account?{" "}
+                <Text 
+                  as="span" 
+                  color="set.400" 
+                  cursor="pointer" 
+                  _hover={{ color: "set.300" }}
+                  onClick={() => router.push('/SignUp')}
+                >
+                  Sign Up
+                </Text>
               </Text>
             </VStack>
           </Box>

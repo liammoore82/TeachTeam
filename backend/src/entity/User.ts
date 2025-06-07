@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from 'typeorm';
 import { Application } from './Application';
 import { LecturerCourse } from './LecturerCourse';
 
@@ -16,7 +16,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: ['candidate', 'lecturer', 'admin'],
-    default: 'student'
+    default: 'candidate'
   })
   role: 'candidate' | 'lecturer' | 'admin';
 
@@ -25,6 +25,9 @@ export class User {
 
   @OneToMany(() => LecturerCourse, lecturerCourse => lecturerCourse.lecturer)
   lecturerCourses: LecturerCourse[];
+
+  @CreateDateColumn()
+  createdAt: Date;
 
   // Method to validate user data
   static validate(userData: Partial<User>): boolean {
@@ -37,13 +40,14 @@ export class User {
   }
 
   // Method to sanitize user data (remove password for client-side)
- toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses'> {
+ toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses' | 'createdAt'> {
     return {
       id: this.id,
       email: this.email,
       role: this.role,
       applications: this.applications,
-      lecturerCourses: this.lecturerCourses
+      lecturerCourses: this.lecturerCourses,
+      createdAt: this.createdAt
     };
   }
 }

@@ -274,12 +274,44 @@ const LecturerPage = () => {
     setFilteredApplications(mockApplications);
   };
 
-  // Load statistics for all lecturer selections (removed localStorage dependency)
-  const loadAllLecturerSelections = (): void => {
-    // For now, just use empty selections since we're removing localStorage dependencies
-    // In the future, this could be replaced with an API call to get lecturer selections
-    setAllLecturerSelections({});
-    setStatisticsLoaded(true);
+  // Load statistics for all lecturer selections from API
+  const loadAllLecturerSelections = async (): Promise<void> => {
+    try {
+      // Get all lecturer selections from API
+      const allSelections = await lecturerSelectionService.getAllSelections();
+      
+      // Group selections by lecturer ID
+      const selectionsByLecturer: {[key: string]: SelectedCandidate[]} = {};
+      
+      allSelections.forEach(selection => {
+        const lecturerId = selection.lecturer.id.toString();
+        
+        if (!selectionsByLecturer[lecturerId]) {
+          selectionsByLecturer[lecturerId] = [];
+        }
+        
+        // Convert API selection to SelectedCandidate format
+        const candidate: SelectedCandidate = {
+          applicationId: selection.application.id.toString(),
+          name: selection.application.fullName,
+          email: selection.application.user.email,
+          course: selection.application.course.code,
+          role: 'tutor', // Default role, could be enhanced based on application data
+          rank: selection.rank,
+          comments: selection.comments || ''
+        };
+        
+        selectionsByLecturer[lecturerId].push(candidate);
+      });
+      
+      setAllLecturerSelections(selectionsByLecturer);
+      setStatisticsLoaded(true);
+    } catch (error) {
+      console.error('Error loading all lecturer selections:', error);
+      // Fallback to empty selections if API fails
+      setAllLecturerSelections({});
+      setStatisticsLoaded(true);
+    }
   };
 
   // Load selected candidates from API
@@ -345,7 +377,7 @@ const LecturerPage = () => {
       // Reload selected candidates from API
       await loadSelectedCandidates();
       
-      loadAllLecturerSelections();
+      await loadAllLecturerSelections();
       
       toast({
         title: existingIndex >= 0 ? 'Candidate Updated' : 'Candidate Selected',
@@ -382,7 +414,7 @@ const LecturerPage = () => {
       await loadSelectedCandidates();
       
       // Refresh statistics after removal
-      loadAllLecturerSelections();
+      await loadAllLecturerSelections();
       
       toast({
         title: 'Candidate Removed',

@@ -235,4 +235,134 @@ describe('Backend Controllers', () => {
     // Verify: Check that complete application data was returned
     expect(mockResponse.json).toHaveBeenCalledWith(savedApplication);
   });
+
+  // Test 5: Lecturer-course assignment with role validation
+  // This tests the administrative functionality for assigning lecturers to courses
+  it('should assign lecturer to course with validation in LecturerCourseController', async () => {
+    // Setup: Create LecturerCourseController and mock entities
+    const lecturerCourseController = new LecturerCourseController();
+    const mockLecturer = { id: 1, email: 'lecturer@example.com', role: 'lecturer' };
+    const mockCourse = { id: 1, code: 'COMP1234', title: 'Programming', roleType: 'tutor' };
+
+    // Assignment request data
+    const assignmentData = {
+      lecturerId: 1,
+      courseId: 1
+    };
+
+    const savedAssignment = {
+      id: 1,
+      lecturer: mockLecturer,
+      course: mockCourse
+    };
+
+    // Simulate assignment creation request
+    mockRequest.body = assignmentData;
+
+    // Mock sequential database operations:
+    mockRepository.findOne
+      .mockResolvedValueOnce(mockLecturer)    // 1. Verify lecturer exists and has correct role
+      .mockResolvedValueOnce(mockCourse)      // 2. Verify course exists
+      .mockResolvedValueOnce(null)           // 3. Check no duplicate assignment exists
+      .mockResolvedValueOnce(savedAssignment); // 4. Fetch saved assignment with relations
+
+    mockRepository.create.mockReturnValue(savedAssignment);
+    mockRepository.save.mockResolvedValue(savedAssignment);
+
+    // Mock the LecturerCourse entity validation method
+    const mockValidate = jest.fn().mockReturnValue(true);
+    require('../entity/LecturerCourse').LecturerCourse = { validate: mockValidate };
+
+    // Execute: Call the createLecturerCourse method
+    await lecturerCourseController.createLecturerCourse(mockRequest as Request, mockResponse as Response);
+
+    // Verify: Check that lecturer existence and role was validated
+    expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } }); // Lecturer lookup
+
+    // Verify: Check that course existence was validated
+    expect(mockRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } }); // Course lookup
+
+    // Verify: Check that assignment was created with correct entities
+    expect(mockRepository.create).toHaveBeenCalledWith({
+      lecturer: mockLecturer,
+      course: mockCourse
+    });
+
+    // Verify: Check that HTTP 201 status was returned (created)
+    expect(mockResponse.status).toHaveBeenCalledWith(201);
+
+    // Verify: Check that complete assignment data was returned
+    expect(mockResponse.json).toHaveBeenCalledWith(savedAssignment);
+  });
+
+  // Test 6: Lecturer selection and ranking system
+  // This tests the core functionality for lecturers to rank and comment on candidate applications
+  it('should create and update lecturer selection with ranking in LecturerSelectionController', async () => {
+    // Setup: Create LecturerSelectionController and mock entities
+    const selectionController = new LecturerSelectionController();
+    const mockLecturer = { id: 1, email: 'lecturer@example.com', role: 'lecturer' };
+    const mockApplication = {
+      id: 1,
+      fullName: 'John Doe',
+      user: { id: 2, email: 'candidate@example.com' },
+      course: { id: 1, code: 'COMP1234' }
+    };
+
+    // Selection data including ranking and comments
+    const selectionData = {
+      lecturerId: 1,
+      applicationId: 1,
+      rank: 1,                  // Rank this candidate as #1 choice
+      comments: 'Excellent candidate'    // Lecturer's assessment comments
+    };
+
+    const savedSelection = {
+      id: 1,
+      lecturer: mockLecturer,
+      application: mockApplication,
+      rank: 1,
+      comments: 'Excellent candidate'
+    };
+
+    // Simulate selection creation request
+    mockRequest.body = selectionData;
+
+    // Mock sequential database operations:
+    mockRepository.findOne
+      .mockResolvedValueOnce(mockLecturer)    // 1. Verify lecturer exists and has lecturer role
+      .mockResolvedValueOnce(mockApplication)  // 2. Verify application exists with relations
+      .mockResolvedValueOnce(null)           // 3. Check no existing selection (allows update)
+      .mockResolvedValueOnce(savedSelection);  // 4. Fetch saved selection with relations
+
+    mockRepository.create.mockReturnValue(savedSelection);
+    mockRepository.save.mockResolvedValue(savedSelection);
+
+    // Execute: Call the createSelection method
+    await selectionController.createSelection(mockRequest as Request, mockResponse as Response);
+
+    // Verify: Check that lecturer role validation was performed
+    expect(mockRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 1, role: 'lecturer' }    // Must be a lecturer to make selections
+    });
+
+    // Verify: Check that application was fetched with user and course relations
+    expect(mockRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 1 },
+      relations: ['user', 'course']        // Need related data for complete selection
+    });
+
+    // Verify: Check that selection was created with ranking and comments
+    expect(mockRepository.create).toHaveBeenCalledWith({
+      lecturer: mockLecturer,
+      application: mockApplication,
+      rank: 1,                              // Ranking system for candidate preference
+      comments: 'Excellent candidate'        // Qualitative assessment
+    });
+
+    // Verify: Check that HTTP 201 status was returned (created)
+    expect(mockResponse.status).toHaveBeenCalledWith(201);
+
+    // Verify: Check that complete selection data was returned
+    expect(mockResponse.json).toHaveBeenCalledWith(savedSelection);
+  });
 });

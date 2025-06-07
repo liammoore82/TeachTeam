@@ -33,5 +33,55 @@ export class AuthController {
     }
   }
 
+  // POST /auth/signup - Sign up new user
+  async signUp(req: Request, res: Response) {
+    try {
+      const { email, password, role = 'candidate' } = req.body;
 
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      // Check if user already exists
+      const existingUser = await this.userRepository.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(409).json({ error: 'User already exists' });
+      }
+
+      // Create user
+      const user = this.userRepository.create({
+        email,
+        password, // Store plain text (not secure for production)
+        role
+      });
+
+      const savedUser = await this.userRepository.save(user);
+
+      res.status(201).json({
+        user: savedUser.toSafeObject()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  }
+
+  // GET /auth/profile/:email - Get user profile by email
+  async getProfile(req: Request, res: Response) {
+    try {
+      const { email } = req.params;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(user.toSafeObject());
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get profile' });
+    }
+  }
 }

@@ -13,8 +13,9 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      window.location.href = '/signin';
+    // Only redirect on 401 if we're not already on the sign-in page
+    if (error.response?.status === 401 && !window.location.pathname.toLowerCase().includes('signin')) {
+      window.location.href = '/SignIn';
     }
     return Promise.reject(error);
   }

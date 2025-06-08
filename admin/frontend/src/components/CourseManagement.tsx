@@ -4,7 +4,8 @@ import {
   GET_COURSES, 
   CREATE_COURSE_MUTATION, 
   UPDATE_COURSE_MUTATION, 
-  DELETE_COURSE_MUTATION 
+  DELETE_COURSE_MUTATION,
+  GET_CANDIDATES_CHOSEN_PER_COURSE 
 } from '../graphql/queries';
 
 interface Course {
@@ -26,7 +27,8 @@ export const CourseManagement: React.FC = () => {
       setShowForm(false);
       setFormData({ code: '', title: '', roleType: 'Tutor' });
       refetch();
-    }
+    },
+    refetchQueries: [{ query: GET_CANDIDATES_CHOSEN_PER_COURSE }]
   });
 
   const [updateCourse] = useMutation(UPDATE_COURSE_MUTATION, {
@@ -34,13 +36,15 @@ export const CourseManagement: React.FC = () => {
       setEditingCourse(null);
       setFormData({ code: '', title: '', roleType: 'Tutor' });
       refetch();
-    }
+    },
+    refetchQueries: [{ query: GET_CANDIDATES_CHOSEN_PER_COURSE }]
   });
 
   const [deleteCourse] = useMutation(DELETE_COURSE_MUTATION, {
     onCompleted: () => {
       refetch();
-    }
+    },
+    refetchQueries: [{ query: GET_CANDIDATES_CHOSEN_PER_COURSE }]
   });
 
   const handleSubmit = (e: React.FormEvent) => {

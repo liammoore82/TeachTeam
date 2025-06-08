@@ -209,6 +209,10 @@ const SignIn = () => {
         
         if (error.response?.status === 401) {
           setGeneralError("Invalid email or password");
+        } else if (error.response?.status === 403) {
+          // Handle blocked user
+          const blockMessage = error.response?.data?.message || "Your account has been blocked by an administrator.";
+          setGeneralError(blockMessage);
         } else {
           setGeneralError("An error occurred during login. Please try again.");
         }

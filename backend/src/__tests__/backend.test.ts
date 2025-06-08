@@ -43,47 +43,71 @@ describe('Backend Controllers', () => {
     jest.clearAllMocks();
   });
 
-  // Test 1: Core authentication functionality - validates user credentials and session management
-  // This tests the most critical security feature of the application
-  it('should authenticate user with valid credentials in AuthController', async () => {
-    // Setup: Create AuthController instance and mock a valid user in the database
+  // Test 1: Authentication error handling - validates proper error responses for invalid credentials
+  // This tests critical security edge cases including blocked users and invalid credentials
+  it('should handle authentication errors and blocked users in AuthController', async () => {
+    // Setup: Create AuthController instance
     const authController = new AuthController();
-    const mockUser = {
-      id: 1,
-      email: 'test@example.com',
-      password: 'password123',
-      role: 'candidate',
-      toSafeObject: jest.fn().mockReturnValue({
-        id: 1,
-        email: 'test@example.com',
-        role: 'candidate'
-      })
-    };
 
-    // Simulate a sign-in request with valid email and password
+    // Test Case 1: Invalid credentials - user not found
     mockRequest.body = {
-      email: 'test@example.com',
+      email: 'nonexistent@example.com',
       password: 'password123'
     };
 
-    // Mock database response to return the user when searched by email
-    mockRepository.findOne.mockResolvedValue(mockUser);
+    // Mock database response to return null (user not found)
+    mockRepository.findOne.mockResolvedValue(null);
 
-    // Execute: Call the signIn method
+    // Execute: Call the signIn method with invalid email
     await authController.signIn(mockRequest as Request, mockResponse as Response);
 
-    // Verify: Check that the database was queried with the correct email
-    expect(mockRepository.findOne).toHaveBeenCalledWith({
-      where: { email: 'test@example.com' }
+    // Verify: Check that 401 Unauthorized status is returned for invalid credentials
+    expect(mockResponse.status).toHaveBeenCalledWith(401);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      error: 'Invalid credentials'
     });
 
-    // Verify: Check that the response contains the safe user object (without password)
+    // Reset mocks for next test case
+    jest.clearAllMocks();
+    mockResponse.status = jest.fn().mockReturnThis();
+    mockResponse.json = jest.fn().mockReturnThis();
+
+    // Test Case 2: Blocked user with detailed blocking information
+    const user = {
+      id: 1,
+      email: 'blocked@example.com',
+      password: 'password123',
+      role: 'candidate'
+    };
+
+    const blockedUserRecord = {
+      id: 1,
+      userId: 1,
+      reason: 'Violation of terms',
+      message: 'Your account has been blocked by an administrator.',
+      blockedAt: new Date('2024-01-01')
+    };
+
+    mockRequest.body = {
+      email: 'blocked@example.com',
+      password: 'password123'
+    };
+
+    // Mock database responses: first findOne returns the user, second returns blocked user record
+    mockRepository.findOne
+      .mockResolvedValueOnce(user)              // User lookup
+      .mockResolvedValueOnce(blockedUserRecord); // BlockedUser lookup
+
+    // Execute: Call the signIn method with blocked user
+    await authController.signIn(mockRequest as Request, mockResponse as Response);
+
+    // Verify: Check that 403 Forbidden status is returned with blocking details
+    expect(mockResponse.status).toHaveBeenCalledWith(403);
     expect(mockResponse.json).toHaveBeenCalledWith({
-      user: {
-        id: 1,
-        email: 'test@example.com',
-        role: 'candidate'
-      }
+      error: 'Account blocked',
+      message: 'Your account has been blocked by an administrator.',
+      reason: 'Violation of terms',
+      blockedAt: new Date('2024-01-01')
     });
   });
 

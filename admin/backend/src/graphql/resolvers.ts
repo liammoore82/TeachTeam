@@ -253,7 +253,7 @@ export const resolvers = {
 
       // Check if user is already blocked
       const existingBlock = await blockedUserRepository.findOne({
-        where: { userId: parseInt(userId), isActive: true }
+        where: { user: { id: parseInt(userId) }, isActive: true }
       });
 
       if (existingBlock) {
@@ -279,7 +279,7 @@ export const resolvers = {
     unblockUser: async (_: any, { userId }: { userId: string }) => {
       // Find active block for user
       const blockedUser = await blockedUserRepository.findOne({
-        where: { userId: parseInt(userId), isActive: true }
+        where: { user: { id: parseInt(userId) }, isActive: true }
       });
 
       if (!blockedUser) {

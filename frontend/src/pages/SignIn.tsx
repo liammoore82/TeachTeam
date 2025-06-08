@@ -205,7 +205,8 @@ const SignIn = () => {
         }, 1500);
 
       } catch (error: any) {
-        console.error("Login error:", error);
+        // Prevent unhandled promise rejection popup in development
+        console.warn("Login error (handled):", error);
         
         if (error.response?.status === 401) {
           setGeneralError("Invalid email or password");

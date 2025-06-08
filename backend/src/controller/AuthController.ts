@@ -67,6 +67,30 @@ export class AuthController {
         return res.status(400).json({ error: 'Email and password are required' });
       }
 
+      // Validate password strength
+      const passwordErrors = [];
+      if (password.length < 8) {
+        passwordErrors.push("at least 8 characters");
+      }
+      if (!/[A-Z]/.test(password)) {
+        passwordErrors.push("one uppercase letter");
+      }
+      if (!/[a-z]/.test(password)) {
+        passwordErrors.push("one lowercase letter");
+      }
+      if (!/[0-9]/.test(password)) {
+        passwordErrors.push("one number");
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        passwordErrors.push("one special character");
+      }
+      
+      if (passwordErrors.length > 0) {
+        return res.status(400).json({ 
+          error: `Password must contain ${passwordErrors.join(", ")}` 
+        });
+      }
+
       // Check if user already exists
       const existingUser = await this.userRepository.findOne({ where: { email } });
       if (existingUser) {

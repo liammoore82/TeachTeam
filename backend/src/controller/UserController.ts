@@ -45,6 +45,34 @@ export class UserController {
   async save(request: Request, response: Response) {
     const { email, password, role } = request.body;
 
+    // Validate password strength
+    if (!password) {
+      return response.status(400).json({ message: "Password is required" });
+    }
+    
+    const passwordErrors = [];
+    if (password.length < 8) {
+      passwordErrors.push("at least 8 characters");
+    }
+    if (!/[A-Z]/.test(password)) {
+      passwordErrors.push("one uppercase letter");
+    }
+    if (!/[a-z]/.test(password)) {
+      passwordErrors.push("one lowercase letter");
+    }
+    if (!/[0-9]/.test(password)) {
+      passwordErrors.push("one number");
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      passwordErrors.push("one special character");
+    }
+    
+    if (passwordErrors.length > 0) {
+      return response.status(400).json({ 
+        message: `Password must contain ${passwordErrors.join(", ")}` 
+      });
+    }
+
     // Hash password before storing
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);

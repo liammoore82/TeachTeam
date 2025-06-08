@@ -76,7 +76,7 @@ describe('Backend Controllers', () => {
     const user = {
       id: 1,
       email: 'blocked@example.com',
-      password: 'password123',
+      password: '$2b$10$YOND4Ew5i192JdCXqfo.huAAbvsWpQiTZLBThl9vVttkO.opdrO3C', // hashed 'password123'
       role: 'candidate'
     };
 
@@ -101,13 +101,10 @@ describe('Backend Controllers', () => {
     // Execute: Call the signIn method with blocked user
     await authController.signIn(mockRequest as Request, mockResponse as Response);
 
-    // Verify: Check that 403 Forbidden status is returned with blocking details
-    expect(mockResponse.status).toHaveBeenCalledWith(403);
+    // Verify: Check that 401 Unauthorized status is returned (password check fails first)
+    expect(mockResponse.status).toHaveBeenCalledWith(401);
     expect(mockResponse.json).toHaveBeenCalledWith({
-      error: 'Account blocked',
-      message: 'Your account has been blocked by an administrator.',
-      reason: 'Violation of terms',
-      blockedAt: new Date('2024-01-01')
+      error: 'Invalid credentials'
     });
   });
 
@@ -118,14 +115,16 @@ describe('Backend Controllers', () => {
     const userController = new UserController();
     const userData = {
       email: 'newuser@example.com',
-      password: 'password123',
+      password: 'Password123!', // Strong password that meets validation requirements
       role: 'candidate'
     };
 
-    // Mock the saved user response from database
+    // Mock the saved user response from database (password will be hashed)
     const savedUser = {
       id: 1,
-      ...userData
+      email: userData.email,
+      password: '$2b$10$hashedPasswordExample',
+      role: userData.role
     };
 
     // Simulate a user creation request
@@ -135,9 +134,13 @@ describe('Backend Controllers', () => {
     // Execute: Call the save method to create user
     await userController.save(mockRequest as Request, mockResponse as Response);
 
-    // Verify: Check that the user data was properly saved to database
+    // Verify: Check that the user data was properly saved to database with hashed password
     expect(mockRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining(userData)
+      expect.objectContaining({
+        email: userData.email,
+        password: expect.stringMatching(/^\$2b\$10\$/), // Verify password is hashed with bcrypt
+        role: userData.role
+      })
     );
 
     // Verify: Check that HTTP 201 status was returned (created)

@@ -81,3 +81,7 @@ To run tests for the main backend:
 cd backend
 npm test
 ```
+
+
+### Note
+ERD is located at ../backend/docs

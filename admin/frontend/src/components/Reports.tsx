@@ -121,19 +121,23 @@ export const Reports: React.FC = () => {
 
         {activeReport === 'multiple-courses' && (
           <div>
-            <div className="flex items-center mb-4">
-              <h2 className="text-lg font-medium text-gray-900 mr-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-medium text-gray-900">
                 Candidates with Multiple Courses
               </h2>
-              <div className="flex items-center">
-                <label className="text-sm text-gray-700 mr-2">Min courses:</label>
-                <input
-                  type="number"
-                  min="2"
+              <div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-lg border">
+                <label className="text-sm font-medium text-gray-700">Minimum courses:</label>
+                <select
                   value={minCourses}
                   onChange={(e) => setMinCourses(parseInt(e.target.value))}
-                  className="w-16 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
+                  className="w-20 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium bg-white"
+                >
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                  <option value={6}>6</option>
+                </select>
               </div>
             </div>
             {multipleCourseLoading ? (
@@ -179,7 +183,7 @@ export const Reports: React.FC = () => {
         {activeReport === 'no-courses' && (
           <div>
             <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Candidates with No Approved Courses
+              Unselected Candidates
             </h2>
             {noCourseLoading ? (
               <div>Loading...</div>
@@ -192,9 +196,6 @@ export const Reports: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900">
                             {candidate.email}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Registered: {new Date(candidate.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex-shrink-0">

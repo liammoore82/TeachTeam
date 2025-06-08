@@ -17,7 +17,7 @@ import { applicationService } from '../services/applicationService';
 import { courseService, Course } from '../services/courseService';
 import { lecturerSelectionService } from '../services/lecturerSelectionService';
 import { userService } from '../services/userService';
-import { lecturerCourseService } from '../services/lecturerCourseService';
+import { lecturerCourseService, Course as LecturerCourse } from '../services/lecturerCourseService';
 
 
 export const courseMap: {[key: string]: string} = {
@@ -45,6 +45,7 @@ const LecturerPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [lecturerCourses, setLecturerCourses] = useState<LecturerCourse[]>([]);
   const hasShownNoCoursesMessage = useRef<boolean>(false);
   
   // Modal states for handling application details and comments
@@ -200,10 +201,11 @@ const LecturerPage = () => {
       setCurrentUser(userData);
       
       // Get lecturer's assigned courses
-      const lecturerCourses = await lecturerCourseService.getCoursesByLecturer(userData.id);
+      const assignedCourses = await lecturerCourseService.getCoursesByLecturer(userData.id);
+      setLecturerCourses(assignedCourses);
       
       // If lecturer has no assigned courses, show empty applications
-      if (lecturerCourses.length === 0) {
+      if (assignedCourses.length === 0) {
         setAllApplications([]);
         setFilteredApplications([]);
         
@@ -223,7 +225,7 @@ const LecturerPage = () => {
       }
       
       // Get applications only for assigned courses
-      const assignedCourseIds = lecturerCourses.map(course => course.id);
+      const assignedCourseIds = assignedCourses.map(course => course.id);
       const applicationPromises = assignedCourseIds.map(courseId => 
         applicationService.getApplicationsByCourse(courseId)
       );
@@ -619,6 +621,7 @@ const LecturerPage = () => {
                 moveRank={moveRank}
                 setEditingCandidate={setEditingCandidate}
                 courseMap={courseMap}
+                lecturerCourses={lecturerCourses}
               />
             </TabPanel>
 
@@ -630,6 +633,7 @@ const LecturerPage = () => {
                 allLecturerSelections={allLecturerSelections}
                 statisticsLoaded={statisticsLoaded}
                 courseMap={courseMap}
+                lecturerCourses={lecturerCourses}
               />
             </TabPanel>
           </TabPanels>

@@ -11,12 +11,20 @@ import {
 
 import { TutorApplication, SelectedCandidate } from '../../types/tutor';
 
+interface Course {
+  id: number;
+  code: string;
+  title: string;
+  roleType: string;
+}
+
 type StatisticsTabProps = {
   allApplications: TutorApplication[];
   selectedCandidates: SelectedCandidate[];
   allLecturerSelections: { [key: string]: SelectedCandidate[] };
   statisticsLoaded: boolean;
   courseMap: { [key: string]: string };
+  lecturerCourses: Course[];
 };
 
 type SelectionCount = {
@@ -40,6 +48,7 @@ const StatisticsTab = ({
   allLecturerSelections,
   statisticsLoaded,
   courseMap,
+  lecturerCourses,
 }: StatisticsTabProps) => {
   // useState to store calculated statistics
   const [statistics, setStatistics] = useState<StatisticsState>({
@@ -59,16 +68,32 @@ const StatisticsTab = ({
       return;
     }
 
+    // Filter applications and selections to only include lecturer's assigned courses
+    const assignedCourseCodes = lecturerCourses.map(course => course.code);
+    
+    // Filter all applications to only include those for assigned courses
+    const filteredApplications = allApplications.filter(app => 
+      assignedCourseCodes.includes(app.selectedCourse)
+    );
+
+    // Filter lecturer selections to only include selections for assigned courses
+    const filteredLecturerSelections: { [key: string]: SelectedCandidate[] } = {};
+    Object.entries(allLecturerSelections).forEach(([lecturerId, selections]) => {
+      filteredLecturerSelections[lecturerId] = selections.filter(candidate => 
+        assignedCourseCodes.includes(candidate.course)
+      );
+    });
+
     // calculates selection counts for each application
     const selectionCounts: { [key: string]: SelectionCount } = {};
 
-    // count selections for each application across all lecturers
-    Object.values(allLecturerSelections).forEach((selections) => {
+    // count selections for each application across all lecturers (filtered)
+    Object.values(filteredLecturerSelections).forEach((selections) => {
       selections.forEach((candidate) => {
         if (!selectionCounts[candidate.applicationId]) {
           selectionCounts[candidate.applicationId] = {
             count: 0,
-            application: allApplications.find((app) => app.id === candidate.applicationId) || null,
+            application: filteredApplications.find((app) => app.id === candidate.applicationId) || null,
           };
         }
         selectionCounts[candidate.applicationId].count += 1;
@@ -102,13 +127,13 @@ const StatisticsTab = ({
         .map(([_, data]) => data.application);
     }
 
-    // find applications not selected by any lecturer
+    // find applications not selected by any lecturer (from filtered applications)
     const selectedIds = new Set<string>(Object.keys(selectionCounts));
-    const notSelected = allApplications.filter((app) => !selectedIds.has(app.id));
+    const notSelected = filteredApplications.filter((app) => !selectedIds.has(app.id));
 
-    // calculate total unique selections across all lecturers
+    // calculate total unique selections across all lecturers (from filtered selections)
     const uniqueIds = new Set<string>();
-    Object.values(allLecturerSelections).forEach((selections) => {
+    Object.values(filteredLecturerSelections).forEach((selections) => {
       selections.forEach((s) => uniqueIds.add(s.applicationId));
     });
 
@@ -122,7 +147,7 @@ const StatisticsTab = ({
       totalSelections: uniqueIds.size,
       selectionCounts,
     });
-  }, [allApplications, allLecturerSelections, statisticsLoaded]);
+  }, [allApplications, allLecturerSelections, statisticsLoaded, lecturerCourses]);
 
   // If statistics aren't loaded yet, show loading message
   if (!statisticsLoaded) {
@@ -134,8 +159,8 @@ const StatisticsTab = ({
     );
   }
 
-  // If no applications (lecturer has no assigned courses), show appropriate message
-  if (allApplications.length === 0) {
+  // If no courses assigned or no applications for assigned courses, show appropriate message
+  if (lecturerCourses.length === 0 || allApplications.length === 0) {
     return (
       <Box bg="gray.900" p={6} rounded="md" shadow="lg" color="white" borderColor="set.700" borderWidth="1px" mb={10}>
         <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
@@ -165,6 +190,12 @@ const StatisticsTab = ({
     selectionCounts,
   } = statistics;
 
+  // Filter selected candidates to only include those for assigned courses
+  const assignedCourseCodes = lecturerCourses.map(course => course.code);
+  const filteredSelectedCandidates = selectedCandidates.filter(candidate => 
+    assignedCourseCodes.includes(candidate.course)
+  );
+
   const barChartData = Object.values(selectionCounts).map(({ application, count }) => ({
     name: application?.name || 'Unknown',
     count,
@@ -187,19 +218,19 @@ const StatisticsTab = ({
           <Stat>
             <StatLabel>Total Applications</StatLabel>
             <StatNumber>{allApplications.length}</StatNumber>
-            <StatHelpText>Across all courses</StatHelpText>
+            <StatHelpText>For your assigned courses</StatHelpText>
           </Stat>
 
           <Stat>
             <StatLabel>Selected by You</StatLabel>
-            <StatNumber>{selectedCandidates.length}</StatNumber>
+            <StatNumber>{filteredSelectedCandidates.length}</StatNumber>
             <StatHelpText>Candidates you've chosen</StatHelpText>
           </Stat>
 
           <Stat>
             <StatLabel>Total Selections</StatLabel>
             <StatNumber>{totalSelections}</StatNumber>
-            <StatHelpText>By all lecturers</StatHelpText>
+            <StatHelpText>By all lecturers for your courses</StatHelpText>
           </Stat>
         </StatGroup>
 

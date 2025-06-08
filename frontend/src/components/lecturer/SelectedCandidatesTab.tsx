@@ -3,7 +3,15 @@ import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Text, Tag, Button,
   IconButton, HStack, VStack, Center, Badge,
 } from '@chakra-ui/react';
+import { WarningIcon } from '@chakra-ui/icons';
 import { SelectedCandidate } from '../../types/tutor';
+
+interface Course {
+  id: number;
+  code: string;
+  title: string;
+  roleType: string;
+}
 
 type SelectedCandidatesTabProps = {
   selectedCandidates: SelectedCandidate[];
@@ -11,6 +19,7 @@ type SelectedCandidatesTabProps = {
   moveRank: (id: string, direction: 'up' | 'down') => void;
   setEditingCandidate: (candidate: SelectedCandidate | null) => void;
   courseMap: { [key: string]: string };
+  lecturerCourses: Course[];
 };
 
 const SelectedCandidatesTab = ({
@@ -19,7 +28,13 @@ const SelectedCandidatesTab = ({
   moveRank,
   setEditingCandidate,
   courseMap,
+  lecturerCourses,
 }: SelectedCandidatesTabProps) => {
+  // Filter candidates to only show those for lecturer's assigned courses
+  const assignedCourseCodes = lecturerCourses.map(course => course.code);
+  const filteredCandidates = selectedCandidates.filter(candidate => 
+    assignedCourseCodes.includes(candidate.course)
+  );
   return (
     <Box
       bg="gray.900"
@@ -35,7 +50,19 @@ const SelectedCandidatesTab = ({
         Selected Candidates
       </Heading>
 
-      {selectedCandidates.length === 0 ? (
+      {lecturerCourses.length === 0 ? (
+        <Center p={10}>
+          <VStack spacing={4}>
+            <WarningIcon boxSize={12} color="yellow.400" />
+            <Text fontSize="lg" color="gray.300" textAlign="center">
+              No rankings available
+            </Text>
+            <Text color="gray.500" textAlign="center">
+              You have not been assigned to any courses yet. Contact an administrator to get access to courses and view selected candidates.
+            </Text>
+          </VStack>
+        </Center>
+      ) : filteredCandidates.length === 0 ? (
         <Center p={10}>
           <Text>No candidates selected yet. View applications to select candidates.</Text>
         </Center>
@@ -53,7 +80,7 @@ const SelectedCandidatesTab = ({
             </Tr>
           </Thead>
           <Tbody>
-            {selectedCandidates
+            {filteredCandidates
               .sort((a, b) => a.rank - b.rank)
               .map((candidate) => (
                 <Tr key={candidate.applicationId}>
@@ -73,7 +100,7 @@ const SelectedCandidatesTab = ({
                           aria-label="Move down"
                           icon={<span>↓</span>}
                           size="xs"
-                          isDisabled={candidate.rank === selectedCandidates.length}
+                          isDisabled={candidate.rank === filteredCandidates.length}
                           onClick={() => moveRank(candidate.applicationId, 'down')}
                           bg="gray.700"
                         />

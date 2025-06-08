@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import {
   Container, Heading, Center, Box, Tabs, TabList, TabPanels, Tab, TabPanel,
@@ -17,6 +17,7 @@ import { applicationService } from '../services/applicationService';
 import { courseService, Course } from '../services/courseService';
 import { lecturerSelectionService } from '../services/lecturerSelectionService';
 import { userService } from '../services/userService';
+import { lecturerCourseService } from '../services/lecturerCourseService';
 
 
 export const courseMap: {[key: string]: string} = {
@@ -44,6 +45,7 @@ const LecturerPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const hasShownNoCoursesMessage = useRef<boolean>(false);
   
   // Modal states for handling application details and comments
   const [selectedApplication, setSelectedApplication] = useState<TutorApplication | null>(null);
@@ -188,17 +190,49 @@ const LecturerPage = () => {
     try {
       setLoading(true);
       
-      // Load courses, applications, and current user concurrently
-      const [coursesData, applicationsData, userData] = await Promise.all([
+      // Load courses, current user first
+      const [coursesData, userData] = await Promise.all([
         courseService.getAllCourses(),
-        applicationService.getAllApplications(),
         userService.getCurrentUser(userEmail!)
       ]);
       
       setCourses(coursesData);
-      setAllApplications(applicationsData);
-      setFilteredApplications(applicationsData);
       setCurrentUser(userData);
+      
+      // Get lecturer's assigned courses
+      const lecturerCourses = await lecturerCourseService.getCoursesByLecturer(userData.id);
+      
+      // If lecturer has no assigned courses, show empty applications
+      if (lecturerCourses.length === 0) {
+        setAllApplications([]);
+        setFilteredApplications([]);
+        
+        // Only show the message once
+        if (!hasShownNoCoursesMessage.current) {
+          hasShownNoCoursesMessage.current = true;
+          toast({
+            title: 'No Courses Assigned',
+            description: 'You have not been assigned to any courses yet. Contact an administrator.',
+            status: 'info',
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+        
+        return;
+      }
+      
+      // Get applications only for assigned courses
+      const assignedCourseIds = lecturerCourses.map(course => course.id);
+      const applicationPromises = assignedCourseIds.map(courseId => 
+        applicationService.getApplicationsByCourse(courseId)
+      );
+      
+      const applicationsArrays = await Promise.all(applicationPromises);
+      const allApplicationsForLecturer = applicationsArrays.flat();
+      
+      setAllApplications(allApplicationsForLecturer);
+      setFilteredApplications(allApplicationsForLecturer);
       
       // Create course map from API data
       const dynamicCourseMap: {[key: string]: string} = {};

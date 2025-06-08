@@ -11,10 +11,10 @@ export const typeDefs = gql`
     id: ID!
     email: String!
     role: String!
-    isActive: Boolean!
     createdAt: String!
     applications: [Application!]
     lecturerCourses: [LecturerCourse!]
+    isActive: Boolean
   }
 
   type Course {

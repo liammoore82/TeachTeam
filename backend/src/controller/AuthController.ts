@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { User } from '../entity/User';
+import { BlockedUser } from '../entity/BlockedUser';
 
 export class AuthController {
   private userRepository = AppDataSource.getRepository(User);
+  private blockedUserRepository = AppDataSource.getRepository(BlockedUser);
 
   // POST /auth/signin - Sign in user
   async signIn(req: Request, res: Response) {
@@ -23,6 +25,20 @@ export class AuthController {
       // Simple password check (not secure for production)
       if (user.password !== password) {
         return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Check if user is blocked
+      const blockedUser = await this.blockedUserRepository.findOne({
+        where: { userId: user.id, isActive: true }
+      });
+
+      if (blockedUser) {
+        return res.status(403).json({ 
+          error: 'Account blocked',
+          message: blockedUser.message,
+          blockedAt: blockedUser.blockedAt,
+          reason: blockedUser.reason
+        });
       }
 
       res.json({

@@ -20,9 +20,6 @@ export class User {
   })
   role: 'candidate' | 'lecturer' | 'admin';
 
-  @Column({ default: true })
-  isActive: boolean;
-
   @OneToMany(() => Application, application => application.user)
   applications: Application[];
 
@@ -41,15 +38,14 @@ export class User {
     );
   }
 
-  toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses' | 'createdAt' | 'isActive'> {
+  toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses' | 'createdAt'> {
     return {
       id: this.id,
       email: this.email,
       role: this.role,
       applications: this.applications,
       lecturerCourses: this.lecturerCourses,
-      createdAt: this.createdAt,
-      isActive: this.isActive
+      createdAt: this.createdAt
     };
   }
 }

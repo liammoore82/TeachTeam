@@ -7,6 +7,7 @@ import applicationRoutes from "./routes/application.routes";
 import courseRoutes from "./routes/course.routes";
 import lecturerCourseRoutes from "./routes/lecturercourse.routes";
 import lecturerSelectionRoutes from "./routes/lecturerselection.routes";
+import blockedUserRoutes from "./routes/blockeduser.routes";
 import cors from "cors";
 
 const app = express();
@@ -22,6 +23,7 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/lecturercourses", lecturerCourseRoutes);
 app.use("/api/lecturer-selections", lecturerSelectionRoutes);
+app.use("/api/blocked-users", blockedUserRoutes);
 
 AppDataSource.initialize()
   .then(() => {

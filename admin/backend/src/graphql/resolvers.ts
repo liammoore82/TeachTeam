@@ -30,10 +30,16 @@ export const resolvers = {
     },
 
     lecturers: async () => {
-      return await userRepository.find({
+      const lecturers = await userRepository.find({
         where: { role: "lecturer" },
-        relations: ["lecturerCourses"]
+        relations: ["lecturerCourses", "lecturerCourses.course"]
       });
+
+      // Set isActive to true for all lecturers (they're not in the blocking system)
+      return lecturers.map(lecturer => ({
+        ...lecturer,
+        isActive: true
+      }));
     },
 
     candidates: async () => {
@@ -60,14 +66,14 @@ export const resolvers = {
 
     courses: async () => {
       return await courseRepository.find({
-        relations: ["applications", "lecturerCourses"]
+        relations: ["applications", "applications.user", "lecturerCourses", "lecturerCourses.lecturer"]
       });
     },
 
     course: async (_: any, { id }: { id: string }) => {
       return await courseRepository.findOne({
         where: { id: parseInt(id) },
-        relations: ["applications", "lecturerCourses"]
+        relations: ["applications", "applications.user", "lecturerCourses", "lecturerCourses.lecturer"]
       });
     },
 

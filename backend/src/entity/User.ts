@@ -20,6 +20,9 @@ export class User {
   })
   role: 'candidate' | 'lecturer' | 'admin';
 
+  @Column({ default: true })
+  isActive: boolean;
+
   @OneToMany(() => Application, application => application.user)
   applications: Application[];
 
@@ -40,14 +43,15 @@ export class User {
   }
 
   // Method to sanitize user data (remove password for client-side)
- toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses' | 'createdAt'> {
+ toSafeObject(): Pick<User, 'id' | 'email' | 'role' | 'applications' | 'lecturerCourses' | 'createdAt' | 'isActive'> {
     return {
       id: this.id,
       email: this.email,
       role: this.role,
       applications: this.applications,
       lecturerCourses: this.lecturerCourses,
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
+      isActive: this.isActive
     };
   }
 }

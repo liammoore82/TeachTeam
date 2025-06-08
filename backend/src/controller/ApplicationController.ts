@@ -219,11 +219,12 @@ export class ApplicationController {
       const { courseId } = req.params;
       const applications = await this.applicationRepository.find({
         where: { course: { id: parseInt(courseId) } },
-        relations: ['user']
+        relations: ['user', 'course']
       });
 
       res.json(applications);
     } catch (error) {
+      console.error('Error fetching applications by course:', error);
       res.status(500).json({ error: 'Failed to fetch course applications' });
     }
   }

@@ -82,6 +82,20 @@ cd backend
 npm test
 ```
 
+### References
 
-### Note
-ERD is located at ../backend/docs
+#### Course Materials
+- Lab Code from Weeks 8-10 were used
+
+#### Documentation Sources
+- [Next.js Documentation](https://nextjs.org/docs)
+- [TypeORM Documentation](https://typeorm.io/)
+- [Express.js Documentation](https://expressjs.com/)
+- [GraphQL Documentation](https://graphql.org/learn/)
+- [Apollo Server Documentation](https://www.apollographql.com/docs/apollo-server/)
+- [Chakra UI Documentation](https://chakra-ui.com/)
+- [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [React Testing Library Documentation](https://testing-library.com/docs/react-testing-library/intro/)
+- [Axios Documentation](https://axios-http.com/docs/intro)
+- [Recharts Documentation](https://recharts.org/en-US/)
+- [React Icons Documentation](https://react-icons.github.io/react-icons/)

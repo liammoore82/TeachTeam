@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { User } from '../entity/User';
 import { BlockedUser } from '../entity/BlockedUser';
+import bcrypt from 'bcryptjs';
 
 export class AuthController {
   private userRepository = AppDataSource.getRepository(User);
@@ -22,8 +23,9 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // Simple password check (not secure for production)
-      if (user.password !== password) {
+      // Verify password using bcrypt
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
@@ -71,10 +73,14 @@ export class AuthController {
         return res.status(409).json({ error: 'User already exists' });
       }
 
+      // Hash password before storing
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
       // Create user
       const user = this.userRepository.create({
         email,
-        password, // Store plain text (not secure for production)
+        password: hashedPassword,
         role
       });
 

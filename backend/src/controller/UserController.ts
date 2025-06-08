@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
+import bcrypt from 'bcryptjs';
 
 export class UserController {
   private userRepository = AppDataSource.getRepository(User);
@@ -44,9 +45,13 @@ export class UserController {
   async save(request: Request, response: Response) {
     const { email, password, role } = request.body;
 
+    // Hash password before storing
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
     const user = Object.assign(new User(), {
       email,
-      password,
+      password: hashedPassword,
       role,
     });
 

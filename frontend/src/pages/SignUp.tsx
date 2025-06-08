@@ -292,7 +292,6 @@ const SignUp = () => {
                 >
                   <option value="candidate">Candidate (Tutor/Lab Assistant)</option>
                   <option value="lecturer">Lecturer</option>
-                  <option value="admin">Admin</option>
                 </Select>
                 {errors.role && <FormErrorMessage>{errors.role}</FormErrorMessage>}
               </FormControl>

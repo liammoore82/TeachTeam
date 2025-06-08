@@ -1,25 +1,43 @@
-import { useState } from "react";
-import { useEffect } from "react";
-import { Pet, petService } from "../services/api";
+import { useState, useEffect } from "react";
+import { Login } from "../components/Login";
+import { Dashboard } from "../components/Dashboard";
 
 export default function Home() {
-  const [pets, setPets] = useState<Pet[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    petService.getAllPets().then(setPets);
+    const loggedIn = localStorage.getItem('adminLoggedIn');
+    if (loggedIn === 'true') {
+      setIsAuthenticated(true);
+    }
+    setLoading(false);
   }, []);
 
-  return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">Pets</h1>
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
 
-      <ul>
-        {pets.map((pet) => (
-          <li key={pet.pet_id}>
-            <p>{pet.name}</p>
-          </li>
-        ))}
-      </ul>
+  const handleLogout = () => {
+    localStorage.removeItem('adminLoggedIn');
+    setIsAuthenticated(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {isAuthenticated ? (
+        <Dashboard onLogout={handleLogout} />
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
     </div>
   );
 }

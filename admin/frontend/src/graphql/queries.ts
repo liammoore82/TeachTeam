@@ -6,7 +6,6 @@ export const LOGIN_MUTATION = gql`
       admin {
         id
         username
-        isActive
       }
     }
   }
@@ -17,7 +16,6 @@ export const GET_ME = gql`
     me {
       id
       username
-      isActive
     }
   }
 `;
@@ -54,7 +52,7 @@ export const GET_LECTURERS = gql`
     lecturers {
       id
       email
-      isActive
+      isBlocked
       lecturerCourses {
         id
         course {
@@ -72,7 +70,7 @@ export const GET_CANDIDATES = gql`
     candidates {
       id
       email
-      isActive
+      isBlocked
       applications {
         id
         status
@@ -142,7 +140,7 @@ export const BLOCK_USER_MUTATION = gql`
     blockUser(userId: $userId) {
       id
       email
-      isActive
+      isBlocked
     }
   }
 `;
@@ -152,7 +150,7 @@ export const UNBLOCK_USER_MUTATION = gql`
     unblockUser(userId: $userId) {
       id
       email
-      isActive
+      isBlocked
     }
   }
 `;

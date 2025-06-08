@@ -29,13 +29,13 @@ export class AuthController {
 
       // Check if user is blocked
       let blockedUser = await this.blockedUserRepository.findOne({
-        where: { user: { id: user.id }, isActive: true }
+        where: { user: { id: user.id } }
       });
 
       // Fallback to direct userId check if relation query doesn't work
       if (!blockedUser) {
         blockedUser = await this.blockedUserRepository.findOne({
-          where: { userId: user.id, isActive: true }
+          where: { userId: user.id }
         });
       }
 

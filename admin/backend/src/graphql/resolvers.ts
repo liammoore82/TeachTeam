@@ -35,11 +35,19 @@ export const resolvers = {
         relations: ["lecturerCourses", "lecturerCourses.course"]
       });
 
-      // Set isActive to true for all lecturers (they're not in the blocking system)
-      return lecturers.map(lecturer => ({
-        ...lecturer,
-        isActive: true
+      // Add blocked status to each lecturer
+      const lecturersWithBlockStatus = await Promise.all(lecturers.map(async (lecturer) => {
+        const blockedUser = await blockedUserRepository.findOne({
+          where: { user: { id: lecturer.id } }
+        });
+        
+        return {
+          ...lecturer,
+          isBlocked: !!blockedUser
+        };
       }));
+
+      return lecturersWithBlockStatus;
     },
 
     candidates: async () => {
@@ -51,12 +59,12 @@ export const resolvers = {
       // Add blocked status to each user
       const usersWithBlockStatus = await Promise.all(users.map(async (user) => {
         const blockedUser = await blockedUserRepository.findOne({
-          where: { userId: user.id, isActive: true }
+          where: { user: { id: user.id } }
         });
         
         return {
           ...user,
-          isActive: !blockedUser, // user is active if not blocked
+          isBlocked: !!blockedUser, // user is blocked if BlockedUser record exists
           blockedInfo: blockedUser || null
         };
       }));
@@ -124,18 +132,37 @@ export const resolvers = {
     candidatesWithMultipleCourses: async (_: any, { minCourses }: { minCourses?: number }) => {
       const min = minCourses || 3;
       
-      const candidates = await userRepository.find({
-        where: { role: "candidate" },
-        relations: ["applications"]
+      // Get all lecturer selections to find which candidates have been selected
+      const lecturerSelections = await lecturerSelectionRepository.find({
+        relations: ["application", "application.user", "application.course"]
       });
 
-      const result = candidates
-        .map(user => {
-          const approvedApplications = user.applications.filter(app => app.status === "approved");
+      // Group selections by user (candidate)
+      const selectionsByUser: { [userId: string]: any[] } = {};
+      lecturerSelections.forEach(selection => {
+        const userId = selection.application.user.id.toString();
+        if (!selectionsByUser[userId]) {
+          selectionsByUser[userId] = [];
+        }
+        selectionsByUser[userId].push(selection);
+      });
+
+      const result = Object.entries(selectionsByUser)
+        .map(([userId, selections]) => {
+          // Get unique courses for which this candidate has been selected
+          const uniqueCourses = selections.reduce((acc, selection) => {
+            const course = selection.application.course;
+            if (!acc.find((c: any) => c.id === course.id)) {
+              acc.push(course);
+            }
+            return acc;
+          }, [] as any[]);
+          
           return {
-            user,
-            courseCount: approvedApplications.length,
-            courses: approvedApplications.map(app => app.course)
+            user: selections[0].application.user, // Get user from first selection
+            courseCount: uniqueCourses.length,
+            courses: uniqueCourses,
+            selections: selections // Include selections for debugging
           };
         })
         .filter(item => item.courseCount >= min);
@@ -253,7 +280,7 @@ export const resolvers = {
 
       // Check if user is already blocked
       const existingBlock = await blockedUserRepository.findOne({
-        where: { user: { id: parseInt(userId) }, isActive: true }
+        where: { user: { id: parseInt(userId) } }
       });
 
       if (existingBlock) {
@@ -277,18 +304,17 @@ export const resolvers = {
     },
 
     unblockUser: async (_: any, { userId }: { userId: string }) => {
-      // Find active block for user
+      // Find block for user
       const blockedUser = await blockedUserRepository.findOne({
-        where: { user: { id: parseInt(userId) }, isActive: true }
+        where: { user: { id: parseInt(userId) } }
       });
 
       if (!blockedUser) {
         throw new Error("User is not currently blocked");
       }
 
-      // Deactivate the block
-      blockedUser.isActive = false;
-      await blockedUserRepository.save(blockedUser);
+      // Delete the block record
+      await blockedUserRepository.remove(blockedUser);
 
       return await userRepository.findOne({
         where: { id: parseInt(userId) },

@@ -21,13 +21,13 @@ export const UserManagement: React.FC = () => {
     }
   });
 
-  const handleBlockUser = (userId: string, isCurrentlyActive: boolean) => {
-    const action = isCurrentlyActive ? 'block' : 'unblock';
+  const handleBlockUser = (userId: string, isCurrentlyBlocked: boolean) => {
+    const action = isCurrentlyBlocked ? 'unblock' : 'block';
     if (confirm(`Are you sure you want to ${action} this user?`)) {
-      if (isCurrentlyActive) {
-        blockUser({ variables: { userId } });
-      } else {
+      if (isCurrentlyBlocked) {
         unblockUser({ variables: { userId } });
+      } else {
+        blockUser({ variables: { userId } });
       }
     }
   };
@@ -80,11 +80,11 @@ export const UserManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            candidate.isActive 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
+                            candidate.isBlocked 
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-green-100 text-green-800' 
                           }`}>
-                            {candidate.isActive ? 'Active' : 'Blocked'}
+                            {candidate.isBlocked ? 'Blocked' : 'Active'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -108,14 +108,14 @@ export const UserManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
-                            onClick={() => handleBlockUser(candidate.id, candidate.isActive)}
+                            onClick={() => handleBlockUser(candidate.id, candidate.isBlocked)}
                             className={`${
-                              candidate.isActive
-                                ? 'text-red-600 hover:text-red-900'
-                                : 'text-green-600 hover:text-green-900'
+                              candidate.isBlocked
+                                ? 'text-green-600 hover:text-green-900'
+                                : 'text-red-600 hover:text-red-900'
                             }`}
                           >
-                            {candidate.isActive ? 'Block' : 'Unblock'}
+                            {candidate.isBlocked ? 'Unblock' : 'Block'}
                           </button>
                         </td>
                       </tr>

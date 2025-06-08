@@ -21,7 +21,4 @@ export class BlockedUser {
 
   @CreateDateColumn()
   blockedAt: Date;
-
-  @Column({ default: true })
-  isActive: boolean;
 }

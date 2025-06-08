@@ -4,7 +4,6 @@ export const typeDefs = gql`
   type Admin {
     id: ID!
     username: String!
-    isActive: Boolean!
   }
 
   type User {
@@ -14,7 +13,7 @@ export const typeDefs = gql`
     createdAt: String!
     applications: [Application!]
     lecturerCourses: [LecturerCourse!]
-    isActive: Boolean
+    isBlocked: Boolean
   }
 
   type Course {

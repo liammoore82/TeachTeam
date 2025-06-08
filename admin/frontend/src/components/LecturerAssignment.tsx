@@ -162,9 +162,9 @@ export const LecturerAssignment: React.FC = () => {
                   </div>
                   <div className="flex-shrink-0">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      lecturer.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      !lecturer.isBlocked ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {lecturer.isActive ? 'Active' : 'Blocked'}
+                      {!lecturer.isBlocked ? 'Active' : 'Blocked'}
                     </span>
                   </div>
                 </div>

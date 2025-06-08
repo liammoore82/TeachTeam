@@ -24,7 +24,7 @@ export class BlockedUserController {
 
       // Check if user is already blocked
       const existingBlock = await this.blockedUserRepository.findOne({
-        where: { userId, isActive: true }
+        where: { userId }
       });
 
       if (existingBlock) {
@@ -59,18 +59,17 @@ export class BlockedUserController {
         return res.status(400).json({ error: 'User ID is required' });
       }
 
-      // Find active block for user
+      // Find block for user
       const blockedUser = await this.blockedUserRepository.findOne({
-        where: { userId: parseInt(userId), isActive: true }
+        where: { userId: parseInt(userId) }
       });
 
       if (!blockedUser) {
         return res.status(404).json({ error: 'User is not currently blocked' });
       }
 
-      // Deactivate the block instead of deleting (for audit trail)
-      blockedUser.isActive = false;
-      await this.blockedUserRepository.save(blockedUser);
+      // Delete the block record
+      await this.blockedUserRepository.remove(blockedUser);
 
       res.json({
         message: 'User unblocked successfully'
@@ -84,7 +83,6 @@ export class BlockedUserController {
   async getBlockedUsers(req: Request, res: Response) {
     try {
       const blockedUsers = await this.blockedUserRepository.find({
-        where: { isActive: true },
         relations: ['user']
       });
 
@@ -100,7 +98,7 @@ export class BlockedUserController {
       const { userId } = req.params;
 
       const blockedUser = await this.blockedUserRepository.findOne({
-        where: { userId: parseInt(userId), isActive: true },
+        where: { userId: parseInt(userId) },
         relations: ['user']
       });
 

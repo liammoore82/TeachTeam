@@ -123,8 +123,8 @@ const SignIn = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // For email field, automatically trim whitespace
-    const cleanedValue = name === 'email' ? value.trim() : value;
+    // For email and password fields, automatically trim whitespace
+    const cleanedValue = (name === 'email' || name === 'password') ? value.trim() : value;
 
     // Update form with new value
     setFormState((prev) => ({

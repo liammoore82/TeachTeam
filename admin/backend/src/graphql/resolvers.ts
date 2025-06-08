@@ -112,19 +112,32 @@ export const resolvers = {
     },
 
     candidatesChosenPerCourse: async () => {
-      const courses = await courseRepository.find({
-        relations: ["applications"]
+      const courses = await courseRepository.find();
+      
+      // Get all lecturer selections to find chosen candidates
+      const lecturerSelections = await lecturerSelectionRepository.find({
+        relations: ["application", "application.user", "application.course"]
       });
       
       return courses.map(course => {
-        const chosenCandidates = course.applications
-          .filter(app => app.status === "approved")
-          .map(app => app.user);
+        // Find selections for this course
+        const selectionsForCourse = lecturerSelections.filter(
+          selection => selection.application.course.id === course.id
+        );
+        
+        // Get unique chosen candidates (since multiple lecturers might select the same candidate)
+        const uniqueCandidates = selectionsForCourse.reduce((acc, selection) => {
+          const user = selection.application.user;
+          if (!acc.find(candidate => candidate.id === user.id)) {
+            acc.push(user);
+          }
+          return acc;
+        }, [] as any[]);
         
         return {
           course,
-          chosenCandidates,
-          candidateCount: chosenCandidates.length
+          chosenCandidates: uniqueCandidates,
+          candidateCount: uniqueCandidates.length
         };
       });
     },

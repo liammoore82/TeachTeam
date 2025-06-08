@@ -134,6 +134,26 @@ const StatisticsTab = ({
     );
   }
 
+  // If no applications (lecturer has no assigned courses), show appropriate message
+  if (allApplications.length === 0) {
+    return (
+      <Box bg="gray.900" p={6} rounded="md" shadow="lg" color="white" borderColor="set.700" borderWidth="1px" mb={10}>
+        <Heading as="h2" size="lg" mb={6}>Application Statistics</Heading>
+        <Center p={10}>
+          <VStack spacing={4}>
+            <WarningIcon boxSize={12} color="yellow.400" />
+            <Text fontSize="lg" color="gray.300" textAlign="center">
+              No statistics available
+            </Text>
+            <Text color="gray.500" textAlign="center">
+              You have not been assigned to any courses yet. Contact an administrator to get access to courses and view application statistics.
+            </Text>
+          </VStack>
+        </Center>
+      </Box>
+    );
+  }
+
 
   const {
     mostChosen,

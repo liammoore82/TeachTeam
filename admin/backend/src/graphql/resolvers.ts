@@ -185,13 +185,21 @@ export const resolvers = {
 
     candidatesWithNoCourses: async () => {
       const candidates = await userRepository.find({
-        where: { role: "candidate" },
-        relations: ["applications"]
+        where: { role: "candidate" }
       });
 
-      return candidates.filter(user => 
-        !user.applications.some(app => app.status === "approved")
+      // Get all lecturer selections to find which candidates have been selected
+      const lecturerSelections = await lecturerSelectionRepository.find({
+        relations: ["application", "application.user"]
+      });
+
+      // Get set of user IDs who have been selected by lecturers
+      const selectedUserIds = new Set(
+        lecturerSelections.map(selection => selection.application.user.id)
       );
+
+      // Return only candidates who haven't been selected by any lecturer
+      return candidates.filter(user => !selectedUserIds.has(user.id));
     },
 
     lecturerSelections: async () => {

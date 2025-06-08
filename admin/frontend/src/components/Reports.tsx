@@ -3,8 +3,7 @@ import { useQuery } from '@apollo/client';
 import { 
   GET_CANDIDATES_CHOSEN_PER_COURSE,
   GET_CANDIDATES_WITH_MULTIPLE_COURSES,
-  GET_CANDIDATES_WITH_NO_COURSES,
-  GET_LECTURER_SELECTIONS
+  GET_CANDIDATES_WITH_NO_COURSES
 } from '../graphql/queries';
 
 export const Reports: React.FC = () => {
@@ -24,9 +23,6 @@ export const Reports: React.FC = () => {
     GET_CANDIDATES_WITH_NO_COURSES
   );
 
-  const { data: selectionsData, loading: selectionsLoading } = useQuery(
-    GET_LECTURER_SELECTIONS
-  );
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -71,16 +67,6 @@ export const Reports: React.FC = () => {
               }`}
             >
               No Courses
-            </button>
-            <button
-              onClick={() => setActiveReport('lecturer-selections')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeReport === 'lecturer-selections'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Lecturer Selections
             </button>
           </nav>
         </div>
@@ -230,60 +216,6 @@ export const Reports: React.FC = () => {
           </div>
         )}
 
-        {activeReport === 'lecturer-selections' && (
-          <div>
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Lecturer Candidate Selections and Rankings
-            </h2>
-            {selectionsLoading ? (
-              <div>Loading...</div>
-            ) : (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  {selectionsData?.lecturerSelections?.map((selection: any) => (
-                    <li key={selection.id} className="px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            {selection.application.course.code} - {selection.application.course.title}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Lecturer: {selection.lecturer.email} | Candidate: {selection.application.user.email}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Rank: {selection.rank} | Status: {selection.application.status}
-                          </p>
-                          {selection.comments && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              Comments: {selection.comments}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-400 mt-1">
-                            Selected: {new Date(selection.selectedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            selection.rank === 1 ? 'bg-green-100 text-green-800' :
-                            selection.rank === 2 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            Rank {selection.rank}
-                          </span>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {!selectionsData?.lecturerSelections?.length && (
-                  <div className="px-6 py-4 text-center text-gray-500">
-                    No lecturer selections found
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

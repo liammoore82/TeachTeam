@@ -12,7 +12,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
 
   const [loginMutation, { loading }] = useMutation(LOGIN_MUTATION, {
-    onCompleted: (data) => {
+    onCompleted: () => {
       localStorage.setItem('adminLoggedIn', 'true');
       onLogin();
     },

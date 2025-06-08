@@ -6,6 +6,25 @@ import {
   UNBLOCK_USER_MUTATION 
 } from '../graphql/queries';
 
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+}
+
+interface Application {
+  id: string;
+  status: string;
+  course: Course;
+}
+
+interface Candidate {
+  id: string;
+  email: string;
+  isBlocked: boolean;
+  applications: Application[];
+}
+
 export const UserManagement: React.FC = () => {
   const { data, loading, refetch } = useQuery(GET_CANDIDATES);
 
@@ -70,8 +89,8 @@ export const UserManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data?.candidates?.map((candidate: any) => {
-                    const approvedApplications = candidate.applications?.filter((app: any) => app.status === 'approved') || [];
+                  {data?.candidates?.map((candidate: Candidate) => {
+                    const approvedApplications = candidate.applications?.filter((app: Application) => app.status === 'approved') || [];
                     
                     return (
                       <tr key={candidate.id}>
@@ -93,7 +112,7 @@ export const UserManagement: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {approvedApplications.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {approvedApplications.map((app: any, index: number) => (
+                              {approvedApplications.map((app: Application) => (
                                 <span
                                   key={app.id}
                                   className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800"

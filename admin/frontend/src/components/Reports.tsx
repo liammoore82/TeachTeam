@@ -6,6 +6,31 @@ import {
   GET_CANDIDATES_WITH_NO_COURSES
 } from '../graphql/queries';
 
+interface User {
+  id: string;
+  email: string;
+  createdAt?: string;
+}
+
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+  roleType: string;
+}
+
+interface CourseReport {
+  course: Course;
+  chosenCandidates: User[];
+  candidateCount: number;
+}
+
+interface CandidateReport {
+  user: User;
+  courseCount: number;
+  courses: Course[];
+}
+
 export const Reports: React.FC = () => {
   const [activeReport, setActiveReport] = useState('chosen-per-course');
   const [minCourses, setMinCourses] = useState(3);
@@ -83,7 +108,7 @@ export const Reports: React.FC = () => {
             ) : (
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  {chosenPerCourseData?.candidatesChosenPerCourse?.map((courseReport: any) => (
+                  {chosenPerCourseData?.candidatesChosenPerCourse?.map((courseReport: CourseReport) => (
                     <li key={courseReport.course.id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
@@ -96,7 +121,7 @@ export const Reports: React.FC = () => {
                           <div className="mt-2">
                             {courseReport.chosenCandidates.length > 0 ? (
                               <div className="flex flex-wrap gap-2">
-                                {courseReport.chosenCandidates.map((candidate: any) => (
+                                {courseReport.chosenCandidates.map((candidate: User) => (
                                   <span
                                     key={candidate.id}
                                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
@@ -145,7 +170,7 @@ export const Reports: React.FC = () => {
             ) : (
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  {multipleCourseData?.candidatesWithMultipleCourses?.map((candidateReport: any) => (
+                  {multipleCourseData?.candidatesWithMultipleCourses?.map((candidateReport: CandidateReport) => (
                     <li key={candidateReport.user.id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
@@ -156,7 +181,7 @@ export const Reports: React.FC = () => {
                             {candidateReport.courseCount} courses
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {candidateReport.courses.map((course: any) => (
+                            {candidateReport.courses.map((course: Course) => (
                               <span
                                 key={course.id}
                                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
@@ -190,7 +215,7 @@ export const Reports: React.FC = () => {
             ) : (
               <div className="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul className="divide-y divide-gray-200">
-                  {noCourseData?.candidatesWithNoCourses?.map((candidate: any) => (
+                  {noCourseData?.candidatesWithNoCourses?.map((candidate: User) => (
                     <li key={candidate.id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">

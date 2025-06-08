@@ -7,6 +7,25 @@ import {
   UNASSIGN_LECTURER_FROM_COURSE_MUTATION 
 } from '../graphql/queries';
 
+interface Lecturer {
+  id: string;
+  email: string;
+  isBlocked: boolean;
+  lecturerCourses: LecturerCourse[];
+}
+
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+  roleType: string;
+}
+
+interface LecturerCourse {
+  id: string;
+  course: Course;
+}
+
 export const LecturerAssignment: React.FC = () => {
   const [selectedLecturer, setSelectedLecturer] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -81,7 +100,7 @@ export const LecturerAssignment: React.FC = () => {
                 required
               >
                 <option value="">Choose a lecturer...</option>
-                {lecturersData?.lecturers?.map((lecturer: any) => (
+                {lecturersData?.lecturers?.map((lecturer: Lecturer) => (
                   <option key={lecturer.id} value={lecturer.id}>
                     {lecturer.email}
                   </option>
@@ -100,7 +119,7 @@ export const LecturerAssignment: React.FC = () => {
                 required
               >
                 <option value="">Choose a course...</option>
-                {coursesData?.courses?.map((course: any) => (
+                {coursesData?.courses?.map((course: Course) => (
                   <option key={course.id} value={course.id}>
                     {course.code} - {course.title}
                   </option>
@@ -124,7 +143,7 @@ export const LecturerAssignment: React.FC = () => {
         <h2 className="text-lg font-medium text-gray-900 mb-4">Current Assignments</h2>
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {lecturersData?.lecturers?.map((lecturer: any) => (
+            {lecturersData?.lecturers?.map((lecturer: Lecturer) => (
               <li key={lecturer.id} className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -134,7 +153,7 @@ export const LecturerAssignment: React.FC = () => {
                     <div className="mt-2">
                       {lecturer.lecturerCourses?.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                          {lecturer.lecturerCourses.map((assignment: any) => (
+                          {lecturer.lecturerCourses.map((assignment: LecturerCourse) => (
                             <span
                               key={assignment.id}
                               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"

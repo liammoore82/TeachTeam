@@ -8,6 +8,16 @@ import {
   GET_CANDIDATES_CHOSEN_PER_COURSE 
 } from '../graphql/queries';
 
+interface Application {
+  id: string;
+  fullName: string;
+  status: string;
+  user: {
+    id: string;
+    email: string;
+  };
+}
+
 interface Course {
   id: string;
   code: string;
@@ -15,7 +25,7 @@ interface Course {
   roleType: string;
 }
 
-export const CourseManagement: React.FC = () => {
+export function CourseManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({ code: '', title: '', roleType: 'Tutor' });
@@ -195,7 +205,7 @@ export const CourseManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data?.courses?.map((course: Course & { applications: any[] }) => (
+                  {data?.courses?.map((course: Course & { applications: Application[] }) => (
                     <tr key={course.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {course.code}

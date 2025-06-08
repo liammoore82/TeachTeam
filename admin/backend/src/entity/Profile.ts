@@ -1,12 +1,8 @@
 import {
   Entity,
   Column,
-  OneToMany,
   PrimaryGeneratedColumn,
-  ManyToMany,
-  JoinTable,
 } from "typeorm";
-import { Pet } from "./Pet";
 
 @Entity()
 export class Profile {
@@ -37,7 +33,4 @@ export class Profile {
   @Column({ type: "varchar", length: 4, nullable: true })
   postcode: string;
 
-  @ManyToMany(() => Pet, (pet) => pet.profiles, { eager: true })
-  @JoinTable()
-  pets: Pet[];
 }

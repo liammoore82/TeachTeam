@@ -31,7 +31,7 @@ interface CandidateReport {
   courses: Course[];
 }
 
-export const Reports: React.FC = () => {
+export function Reports() {
   const [activeReport, setActiveReport] = useState('chosen-per-course');
   const [minCourses, setMinCourses] = useState(3);
 

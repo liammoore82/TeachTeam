@@ -8,7 +8,7 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
+export function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState('courses');
 
   const tabs = [

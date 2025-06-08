@@ -26,7 +26,7 @@ interface LecturerCourse {
   course: Course;
 }
 
-export const LecturerAssignment: React.FC = () => {
+export function LecturerAssignment() {
   const [selectedLecturer, setSelectedLecturer] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
 

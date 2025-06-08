@@ -25,7 +25,7 @@ interface Candidate {
   applications: Application[];
 }
 
-export const UserManagement: React.FC = () => {
+export function UserManagement() {
   const { data, loading, refetch } = useQuery(GET_CANDIDATES);
 
   const [blockUser] = useMutation(BLOCK_USER_MUTATION, {

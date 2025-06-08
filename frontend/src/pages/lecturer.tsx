@@ -400,7 +400,9 @@ const LecturerPage = () => {
         c => c.applicationId === selectedApplication.id
       );
       
-      const rank = existingIndex >= 0 ? selectedCandidates[existingIndex].rank : selectedCandidates.length + 1;
+      // Calculate rank based on existing candidates for the same course
+      const candidatesForSameCourse = selectedCandidates.filter(c => c.course === selectedApplication.selectedCourse);
+      const rank = existingIndex >= 0 ? selectedCandidates[existingIndex].rank : candidatesForSameCourse.length + 1;
       
       // Save selection to API
       await lecturerSelectionService.createSelection({

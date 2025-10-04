@@ -1,5 +1,5 @@
 ## TeachTeam
-A React webapp to allow applicants to apply for jobs at universities, and let lecturers view and review said applications.
+A React webapp to allow applicants to apply for jobs at universities, and let lecturers review said applications.
 
 ## Getting Started
 

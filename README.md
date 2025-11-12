@@ -80,11 +80,6 @@ cd backend
 npm test
 ```
 
-### References
-
-#### Course Materials
-- Lab Code from Weeks 8-10 were used
-
 #### Documentation Sources
 - [Next.js Documentation](https://nextjs.org/docs)
 - [TypeORM Documentation](https://typeorm.io/)
